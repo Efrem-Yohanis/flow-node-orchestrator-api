@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FlowCanvas } from "./FlowCanvas";
-import { calculateFlowLayout } from "@/utils/flowLayoutUtils";
+import { FlowCanvas } from "./FlowCanvas"; // Import FlowCanvas
 import axios from "axios";
 
 export function FlowDetailPage() {
@@ -41,6 +40,31 @@ export function FlowDetailPage() {
     return <div>No flow found.</div>;
   }
 
+  const getStatusBadge = () => {
+    if (flow.is_running) {
+      return <Badge className="bg-green-500 text-white">🟢 Running</Badge>;
+    } else if (flow.is_deployed) {
+      return <Badge className="bg-yellow-500 text-white">🟡 Deployed</Badge>;
+    } else {
+      return <Badge className="bg-red-500 text-white">🔴 Not Deployed</Badge>;
+    }
+  };
+
+  // Helper function to determine node type based on name or other criteria
+  const getNodeType = (nodeName: string): string => {
+    const name = nodeName.toLowerCase();
+    if (name.includes('sftp') || name.includes('collector')) return 'sftp_collector';
+    if (name.includes('fdc')) return 'fdc';
+    if (name.includes('asn1') || name.includes('decoder')) return 'asn1_decoder';
+    if (name.includes('ascii')) return 'ascii_decoder';
+    if (name.includes('validation')) return 'validation_bln';
+    if (name.includes('enrichment')) return 'enrichment_bln';
+    if (name.includes('encoder')) return 'encoder';
+    if (name.includes('diameter')) return 'diameter_interface';
+    if (name.includes('backup')) return 'raw_backup';
+    return 'generic';
+  };
+
   // Create unique nodes map to avoid duplicates
   const uniqueNodes = new Map();
   flow.flow_nodes.forEach((flowNode) => {
@@ -49,26 +73,16 @@ export function FlowDetailPage() {
     }
   });
 
-  // Prepare flow nodes for layout calculation
-  const flowNodesForLayout = Array.from(uniqueNodes.values()).map(flowNode => ({
-    id: flowNode.node.id,
-    incoming_edges: flowNode.incoming_edges || [],
-    outgoing_edges: flowNode.outgoing_edges || []
-  }));
-
-  // Calculate automatic layout
-  const layoutMap = calculateFlowLayout(flowNodesForLayout);
-
-  // Prepare nodes with calculated positions
-  const nodes = Array.from(uniqueNodes.values()).map((flowNode) => {
-    const layout = layoutMap.get(flowNode.node.id);
+  // Prepare nodes from the unique nodes with proper positioning
+  const nodes = Array.from(uniqueNodes.values()).map((flowNode, index) => {
+    const nodeType = getNodeType(flowNode.node.name);
     
     return {
       id: flowNode.node.id,
-      type: 'generic', // Use generic type for all nodes
+      type: nodeType,
       position: { 
-        x: layout?.x || 100,
-        y: layout?.y || 100
+        x: (index % 4) * 300 + 100, // Arrange in a grid pattern
+        y: Math.floor(index / 4) * 200 + 100 
       },
       data: {
         label: flowNode.node.name,
@@ -92,23 +106,12 @@ export function FlowDetailPage() {
           target: edge.to_node,
           animated: true,
           label: edge.condition || undefined,
-          type: 'smoothstep', // Use smooth step edges for better appearance
         });
       }
     });
   });
   
   const edges = Array.from(uniqueEdges.values());
-
-  const getStatusBadge = () => {
-    if (flow.is_running) {
-      return <Badge className="bg-green-500 text-white">🟢 Running</Badge>;
-    } else if (flow.is_deployed) {
-      return <Badge className="bg-yellow-500 text-white">🟡 Deployed</Badge>;
-    } else {
-      return <Badge className="bg-red-500 text-white">🔴 Not Deployed</Badge>;
-    }
-  };
 
   return (
     <div className="space-y-6">
