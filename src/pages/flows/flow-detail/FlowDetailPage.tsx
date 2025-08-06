@@ -13,19 +13,19 @@ export function FlowDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchFlowDetail = async () => {
+    const fetchFlowStructure = async () => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/flows/${id}/`);
+        const response = await axios.get(`http://127.0.0.1:8000/api/flows/${id}/structure/`);
         setFlow(response.data);
       } catch (err) {
-        setError("Error fetching flow details");
+        setError("Error fetching flow structure");
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFlowDetail();
+    fetchFlowStructure();
   }, [id]);
 
   if (loading) {
@@ -65,16 +65,24 @@ export function FlowDetailPage() {
     return 'generic';
   };
 
-  // Prepare nodes from the flow data with proper positioning
-  const nodes = flow.flow_nodes.map((flowNode, index) => {
+  // Create unique nodes map to avoid duplicates
+  const uniqueNodes = new Map();
+  flow.flow_nodes.forEach((flowNode) => {
+    if (!uniqueNodes.has(flowNode.node.id)) {
+      uniqueNodes.set(flowNode.node.id, flowNode);
+    }
+  });
+
+  // Prepare nodes from the unique nodes with proper positioning
+  const nodes = Array.from(uniqueNodes.values()).map((flowNode, index) => {
     const nodeType = getNodeType(flowNode.node.name);
     
     return {
       id: flowNode.node.id,
       type: nodeType,
       position: { 
-        x: (index % 3) * 300 + 100, // Arrange in a grid pattern
-        y: Math.floor(index / 3) * 200 + 100 
+        x: (index % 4) * 300 + 100, // Arrange in a grid pattern
+        y: Math.floor(index / 4) * 200 + 100 
       },
       data: {
         label: flowNode.node.name,
@@ -87,16 +95,23 @@ export function FlowDetailPage() {
     };
   });
 
-  // Prepare edges from the flow data
-  const edges = flow.flow_nodes.flatMap((flowNode) =>
-    flowNode.outgoing_edges.map((edge) => ({
-      id: edge.id,
-      source: edge.from_node,
-      target: edge.to_node,
-      animated: true,
-      label: edge.condition || undefined,
-    }))
-  );
+  // Prepare edges from all outgoing edges, removing duplicates
+  const uniqueEdges = new Map();
+  flow.flow_nodes.forEach((flowNode) => {
+    flowNode.outgoing_edges?.forEach((edge) => {
+      if (!uniqueEdges.has(edge.id)) {
+        uniqueEdges.set(edge.id, {
+          id: edge.id,
+          source: edge.from_node,
+          target: edge.to_node,
+          animated: true,
+          label: edge.condition || undefined,
+        });
+      }
+    });
+  });
+  
+  const edges = Array.from(uniqueEdges.values());
 
   return (
     <div className="space-y-6">
