@@ -11,6 +11,8 @@ import {
   Edge,
   Node,
   BackgroundVariant,
+  Handle,
+  Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -28,6 +30,11 @@ import { RawBackupNode } from '../flow-editor/nodes/RawBackupNode';
 // Generic node component for unknown node types
 const GenericNode = ({ data }) => (
   <div className="px-4 py-3 bg-card border border-border rounded-lg shadow-sm min-w-[200px]">
+    <Handle
+      type="target"
+      position={Position.Left}
+      className="w-3 h-3 bg-primary border-2 border-background"
+    />
     <div className="font-semibold text-sm text-foreground mb-1">
       {data.label || data.node?.name || 'Unknown Node'}
     </div>
@@ -41,6 +48,11 @@ const GenericNode = ({ data }) => (
         Subnode: {data.selected_subnode.name}
       </div>
     )}
+    <Handle
+      type="source"
+      position={Position.Right}
+      className="w-3 h-3 bg-primary border-2 border-background"
+    />
   </div>
 );
 
@@ -84,7 +96,7 @@ export function FlowCanvas({ nodes, edges, onNodeSelect }: FlowCanvasProps) {
   }, [onNodeSelect]);
 
   return (
-    <div className="flex-1 bg-canvas-background">
+    <div className="w-full h-full bg-canvas-background">
       <ReactFlow
         nodes={nodeList}
         edges={edgeList}
