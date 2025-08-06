@@ -1,130 +1,148 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Flow Orchestrator Design System */
 
 @layer base {
   :root {
-    --background: 220 20% 98%;
-    --foreground: 220 20% 10%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 262 83% 70%;
+    /* Flow Orchestrator Primary Colors */
+    --primary: 259 94% 51%;
+    --primary-foreground: 210 40% 98%;
+    --primary-glow: 259 94% 65%;
 
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220 13% 26%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 13% 46%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220 13% 26%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 262 83% 58%;
-
-    /* Flow-specific colors */
-    --flow-node: 0 0% 100%;
-    --flow-node-foreground: 220 20% 10%;
-    --flow-node-border: 220 13% 85%;
-    --flow-node-shadow: 220 13% 70%;
-    --flow-edge: 262 83% 58%;
-    --flow-background: 220 20% 98%;
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-flow: linear-gradient(135deg, hsl(262 83% 58%), hsl(280 100% 70%));
-
-    /* Shadows */
-    --shadow-flow-node: 0 4px 12px -2px hsl(var(--flow-node-shadow) / 0.15);
-    --shadow-flow-node-hover: 0 8px 25px -5px hsl(var(--flow-node-shadow) / 0.25);
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 259 94% 51%;
 
     --radius: 0.5rem;
 
+    /* Flow Orchestrator Specific Colors */
+    --success: 142 76% 36%;
+    --success-foreground: 210 40% 98%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 222.2 84% 4.9%;
+    --info: 217 91% 60%;
+    --info-foreground: 210 40% 98%;
+
+    /* Canvas Colors */
+    --canvas-background: 210 40% 98%;
+    --canvas-grid: 214.3 31.8% 91.4%;
+    --node-background: 0 0% 100%;
+    --node-border: 214.3 31.8% 91.4%;
+    --node-deployed: 142 76% 36%;
+    --node-undeployed: 215.4 16.3% 46.9%;
+    --node-running: 259 94% 51%;
+    --node-stopped: 0 84.2% 60.2%;
+    --edge-default: 215.4 16.3% 46.9%;
+    --edge-active: 259 94% 51%;
+
+    /* Sidebar */
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
+    --sidebar-primary: 259 94% 51%;
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 259 94% 51%;
 
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-canvas: linear-gradient(180deg, hsl(var(--canvas-background)), hsl(var(--background)));
+    
+    /* Shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.3);
+    --shadow-node: 0 2px 8px -2px hsl(var(--foreground) / 0.1);
+    --shadow-canvas: 0 4px 16px -4px hsl(var(--foreground) / 0.1);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
-    --background: 220 20% 8%;
-    --foreground: 220 20% 95%;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
 
-    --card: 220 20% 10%;
-    --card-foreground: 220 20% 95%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 220 20% 10%;
-    --popover-foreground: 220 20% 95%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 262 83% 70%;
+    --primary: 259 94% 65%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-glow: 259 94% 75%;
 
-    --secondary: 220 20% 15%;
-    --secondary-foreground: 220 20% 95%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 220 20% 15%;
-    --muted-foreground: 220 13% 65%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 220 20% 15%;
-    --accent-foreground: 220 20% 95%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 220 20% 20%;
-    --input: 220 20% 20%;
-    --ring: 262 83% 58%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 259 94% 65%;
 
-    /* Flow-specific dark colors */
-    --flow-node: 220 20% 12%;
-    --flow-node-foreground: 220 20% 95%;
-    --flow-node-border: 220 20% 25%;
-    --flow-node-shadow: 220 20% 5%;
-    --flow-edge: 262 83% 58%;
-    --flow-background: 220 20% 8%;
+    --success: 142 76% 45%;
+    --success-foreground: 210 40% 98%;
+    --warning: 43 96% 60%;
+    --warning-foreground: 222.2 84% 4.9%;
+    --info: 217 91% 65%;
+    --info-foreground: 210 40% 98%;
 
-    /* Dark gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-flow: linear-gradient(135deg, hsl(262 83% 58%), hsl(280 100% 70%));
+    --canvas-background: 217.2 32.6% 17.5%;
+    --canvas-grid: 217.2 32.6% 20%;
+    --node-background: 217.2 32.6% 17.5%;
+    --node-border: 217.2 32.6% 25%;
+    --node-deployed: 142 76% 45%;
+    --node-undeployed: 215 20.2% 65.1%;
+    --node-running: 259 94% 65%;
+    --node-stopped: 0 62.8% 30.6%;
+    --edge-default: 215 20.2% 65.1%;
+    --edge-active: 259 94% 65%;
 
-    /* Dark shadows */
-    --shadow-flow-node: 0 4px 12px -2px hsl(var(--flow-node-shadow) / 0.4);
-    --shadow-flow-node-hover: 0 8px 25px -5px hsl(var(--flow-node-shadow) / 0.6);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 259 94% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 259 94% 65%;
+
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.4);
+    --shadow-node: 0 2px 8px -2px hsl(var(--foreground) / 0.2);
+    --shadow-canvas: 0 4px 16px -4px hsl(var(--foreground) / 0.2);
   }
 }
 
@@ -138,80 +156,51 @@ All colors MUST be HSL.
   }
 }
 
-/* React Flow Styles */
-@import '@xyflow/react/dist/style.css';
-
-@layer components {
-  .flow-node {
-    @apply bg-card border-border rounded-lg shadow-sm;
-    border: 1px solid hsl(var(--flow-node-border));
-    background: hsl(var(--flow-node));
-    color: hsl(var(--flow-node-foreground));
-    box-shadow: var(--shadow-flow-node);
-    transition: all 0.2s ease;
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.8s ease-out forwards;
+    opacity: 0;
   }
-
-  .flow-node:hover {
-    box-shadow: var(--shadow-flow-node-hover);
-    border-color: hsl(var(--primary));
+  
+  .animate-slide-up {
+    animation: slide-up 0.6s ease-out forwards;
+    transform: translateY(20px);
+    opacity: 0;
   }
-
-  .flow-node.selected {
-    border-color: hsl(var(--primary));
-    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+  
+  .animate-scale-in {
+    animation: scale-in 0.4s ease-out forwards;
+    transform: scale(0.95);
+    opacity: 0;
   }
-
-  .flow-parameter {
-    @apply text-xs px-2 py-1 bg-muted rounded text-muted-foreground;
+  
+  .glass-morphism {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
-
-  .flow-parameter.required {
-    @apply bg-destructive/10 text-destructive border border-destructive/20;
+  
+  .glow-effect {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
   }
+}
 
-  .react-flow__node {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
+@keyframes fade-in {
+  to {
+    opacity: 1;
   }
+}
 
-  .react-flow__edge-path {
-    stroke: hsl(var(--flow-edge));
-    stroke-width: 2;
+@keyframes slide-up {
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
+}
 
-  .react-flow__edge.selected .react-flow__edge-path {
-    stroke: hsl(var(--primary));
-    stroke-width: 3;
-  }
-
-  .react-flow__handle {
-    background: hsl(var(--primary));
-    border: 2px solid hsl(var(--background));
-    width: 8px;
-    height: 8px;
-  }
-
-  .react-flow__minimap {
-    background: hsl(var(--muted));
-    border: 1px solid hsl(var(--border));
-    border-radius: 0.5rem;
-  }
-
-  .react-flow__controls {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    border-radius: 0.5rem;
-    box-shadow: var(--shadow-flow-node);
-  }
-
-  .react-flow__controls button {
-    background: hsl(var(--card));
-    border-bottom: 1px solid hsl(var(--border));
-    color: hsl(var(--foreground));
-  }
-
-  .react-flow__controls button:hover {
-    background: hsl(var(--muted));
+@keyframes scale-in {
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }
