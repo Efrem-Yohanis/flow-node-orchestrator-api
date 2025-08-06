@@ -16,57 +16,11 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// Import the same node types as the flow editor
-import { SftpCollectorNode } from '../flow-editor/nodes/SftpCollectorNode';
-import { FdcNode } from '../flow-editor/nodes/FdcNode';
-import { Asn1DecoderNode } from '../flow-editor/nodes/Asn1DecoderNode';
-import { AsciiDecoderNode } from '../flow-editor/nodes/AsciiDecoderNode';
-import { ValidationBlnNode } from '../flow-editor/nodes/ValidationBlnNode';
-import { EnrichmentBlnNode } from '../flow-editor/nodes/EnrichmentBlnNode';
-import { EncoderNode } from '../flow-editor/nodes/EncoderNode';
-import { DiameterInterfaceNode } from '../flow-editor/nodes/DiameterInterfaceNode';
-import { RawBackupNode } from '../flow-editor/nodes/RawBackupNode';
-
-// Generic node component for unknown node types
-const GenericNode = ({ data }) => (
-  <div className="px-4 py-3 bg-card border border-border rounded-lg shadow-sm min-w-[200px]">
-    <Handle
-      type="target"
-      position={Position.Left}
-      className="w-3 h-3 bg-primary border-2 border-background"
-    />
-    <div className="font-semibold text-sm text-foreground mb-1">
-      {data.label || data.node?.name || 'Unknown Node'}
-    </div>
-    {data.description && (
-      <div className="text-xs text-muted-foreground mb-2">
-        {data.description}
-      </div>
-    )}
-    {data.selected_subnode && (
-      <div className="text-xs text-muted-foreground">
-        Subnode: {data.selected_subnode.name}
-      </div>
-    )}
-    <Handle
-      type="source"
-      position={Position.Right}
-      className="w-3 h-3 bg-primary border-2 border-background"
-    />
-  </div>
-);
+// Import the generic node component
+import { GenericFlowNode } from '@/components/GenericFlowNode';
 
 const nodeTypes = {
-  sftp_collector: SftpCollectorNode,
-  fdc: FdcNode,
-  asn1_decoder: Asn1DecoderNode,
-  ascii_decoder: AsciiDecoderNode,
-  validation_bln: ValidationBlnNode,
-  enrichment_bln: EnrichmentBlnNode,
-  encoder: EncoderNode,
-  diameter_interface: DiameterInterfaceNode,
-  raw_backup: RawBackupNode,
-  generic: GenericNode,
+  generic: GenericFlowNode,
 };
 
 interface FlowCanvasProps {
