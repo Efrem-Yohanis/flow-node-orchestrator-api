@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -23,6 +23,8 @@ import { EnrichmentBlnNode } from './nodes/EnrichmentBlnNode';
 import { EncoderNode } from './nodes/EncoderNode';
 import { DiameterInterfaceNode } from './nodes/DiameterInterfaceNode';
 import { RawBackupNode } from './nodes/RawBackupNode';
+import { useNodes } from '../../../services/nodeService';
+import type { Node as ApiNode } from '../../../services/nodeService';
 
 const nodeTypes = {
   sftp_collector: SftpCollectorNode,
@@ -34,6 +36,21 @@ const nodeTypes = {
   encoder: EncoderNode,
   diameter_interface: DiameterInterfaceNode,
   raw_backup: RawBackupNode,
+};
+
+// Transform API node data to React Flow format
+const transformApiNodesToFlowNodes = (apiNodes: ApiNode[]): Node[] => {
+  return apiNodes.map((apiNode, index) => ({
+    id: apiNode.id,
+    type: 'sftp_collector', // Default type - could be determined by node properties
+    position: { x: 100 + (index % 3) * 200, y: 100 + Math.floor(index / 3) * 200 },
+    data: {
+      label: apiNode.name,
+      subnodes: apiNode.subnodes || [],
+      version: apiNode.version,
+      last_updated_at: apiNode.last_updated_at,
+    },
+  }));
 };
 
 const initialNodes: Node[] = [
@@ -163,8 +180,17 @@ interface FlowCanvasProps {
 }
 
 export function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const { data: apiNodes, loading, error } = useNodes();
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Update nodes when API data is loaded
+  useEffect(() => {
+    if (apiNodes && apiNodes.length > 0) {
+      const flowNodes = transformApiNodesToFlowNodes(apiNodes);
+      setNodes(flowNodes);
+    }
+  }, [apiNodes, setNodes]);
 
   const onConnect = useCallback(
     (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
