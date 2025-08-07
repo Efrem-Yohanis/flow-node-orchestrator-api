@@ -127,11 +127,14 @@ export const useNodes = () => {
   useEffect(() => {
     const loadNodes = async () => {
       try {
+        console.log('Loading nodes from API...');
         const nodes = await nodeService.getAllNodes();
+        console.log('Nodes loaded successfully:', nodes);
         setData(nodes);
+        setError(null);
       } catch (err: any) {
+        console.error('Error loading nodes:', err);
         setError(err.response?.data?.error || err.message || 'Error fetching nodes');
-        console.error(err);
       } finally {
         setLoading(false);
       }

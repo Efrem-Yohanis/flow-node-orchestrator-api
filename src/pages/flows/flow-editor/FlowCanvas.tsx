@@ -40,15 +40,31 @@ const nodeTypes = {
 
 // Transform API node data to React Flow format
 const transformApiNodesToFlowNodes = (apiNodes: ApiNode[]): Node[] => {
+  // Map to determine node type based on name or other properties
+  const getNodeType = (nodeName: string): string => {
+    const name = nodeName.toLowerCase();
+    if (name.includes('sftp') || name.includes('collector')) return 'sftp_collector';
+    if (name.includes('fdc')) return 'fdc';
+    if (name.includes('asn1') || name.includes('decoder')) return 'asn1_decoder';
+    if (name.includes('ascii')) return 'ascii_decoder';
+    if (name.includes('validation')) return 'validation_bln';
+    if (name.includes('enrichment')) return 'enrichment_bln';
+    if (name.includes('encoder')) return 'encoder';
+    if (name.includes('diameter')) return 'diameter_interface';
+    if (name.includes('backup')) return 'raw_backup';
+    return 'sftp_collector'; // Default fallback
+  };
+
   return apiNodes.map((apiNode, index) => ({
     id: apiNode.id,
-    type: 'sftp_collector', // Default type - could be determined by node properties
-    position: { x: 100 + (index % 3) * 200, y: 100 + Math.floor(index / 3) * 200 },
+    type: getNodeType(apiNode.name),
+    position: { x: 100 + (index % 3) * 300, y: 100 + Math.floor(index / 3) * 250 },
     data: {
       label: apiNode.name,
       subnodes: apiNode.subnodes || [],
       version: apiNode.version,
       last_updated_at: apiNode.last_updated_at,
+      description: `Node version ${apiNode.version}`,
     },
   }));
 };
@@ -181,16 +197,26 @@ interface FlowCanvasProps {
 
 export function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
   const { data: apiNodes, loading, error } = useNodes();
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes); // Start with mock data for now
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   // Update nodes when API data is loaded
   useEffect(() => {
+    console.log('API Nodes loaded:', { apiNodes, loading, error });
+    
     if (apiNodes && apiNodes.length > 0) {
+      console.log('Using API nodes:', apiNodes);
       const flowNodes = transformApiNodesToFlowNodes(apiNodes);
       setNodes(flowNodes);
+    } else if (!loading && apiNodes?.length === 0) {
+      console.log('API returned empty, using mock nodes');
+      // If API returns empty array, use initial mock nodes for demo
+      setNodes(initialNodes);
+    } else if (error) {
+      console.log('API error, using mock nodes:', error);
+      setNodes(initialNodes);
     }
-  }, [apiNodes, setNodes]);
+  }, [apiNodes, loading, error, setNodes]);
 
   const onConnect = useCallback(
     (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
