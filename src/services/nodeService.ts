@@ -139,10 +139,21 @@ export const nodeService = {
     return response.data;
   },
 
-  // Activate node version
+  // Activate node version (will deactivate other active nodes)
   async activateNodeVersion(id: string, version: number): Promise<Node> {
     const response = await axiosInstance.post(`nodes/${id}/activate_version/${version}/`);
     return response.data;
+  },
+
+  // Get currently active node across the system
+  async getActiveNode(): Promise<Node | null> {
+    try {
+      const nodes = await this.getAllNodes();
+      return nodes.find(node => node.active_version !== null) || null;
+    } catch (error) {
+      console.error('Error fetching active node:', error);
+      return null;
+    }
   },
 
   // Create node
