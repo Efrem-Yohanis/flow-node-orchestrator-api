@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Play, Square, RefreshCw } from 'lucide-react';
-import { useNode } from '@/services/nodeService';
+import { nodeService } from '@/services/nodeService';
+import { useState as useNodeState } from 'react';
 
 interface LogEntry {
   id: string;
@@ -26,7 +27,25 @@ export function TestNodePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: node, loading, error } = useNode(id!);
+  const [node, setNode] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchNode = async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const nodeData = await nodeService.getNode(id);
+        setNode(nodeData);
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch node');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNode();
+  }, [id]);
   
   const [selectedSubnodeId, setSelectedSubnodeId] = useState<string>('');
   const [logs, setLogs] = useState<LogEntry[]>([]);

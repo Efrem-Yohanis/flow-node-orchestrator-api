@@ -37,8 +37,9 @@ export function NodeDetailPage() {
         const nodeData = await nodeService.getNode(id);
         setNode(nodeData);
         
-        // Map parameters from node data to match Parameter interface
-        const mappedParameters = (nodeData.parameters || []).map((param: any) => ({
+        // Map parameters from active version or latest version
+        const activeVersion = nodeData.versions.find(v => v.is_deployed) || nodeData.versions[0];
+        const mappedParameters = (activeVersion?.parameters || []).map((param: any) => ({
           id: param.id,
           key: param.key,
           default_value: param.default_value,
@@ -46,8 +47,8 @@ export function NodeDetailPage() {
           node: nodeData.id,
           required: false, // Default value since not in API
           last_updated_by: null,
-          last_updated_at: nodeData.updated_at,
-          is_active: false // Default to false since node parameters don't have is_active
+          last_updated_at: nodeData.last_updated_at,
+          is_active: param.is_active
         }));
         setNodeParameters(mappedParameters);
         
@@ -79,7 +80,7 @@ export function NodeDetailPage() {
       setNodeVersions(versions);
       
       // Set selected version to active version or latest
-      const activeVersion = versions.find(v => v.is_active) || versions[0];
+      const activeVersion = versions.find(v => v.is_deployed) || versions[0];
       setSelectedVersion(activeVersion);
     } catch (err: any) {
       console.error('Error fetching node versions:', err);
@@ -96,7 +97,7 @@ export function NodeDetailPage() {
 
   // Event handlers
   const handleEditVersion = () => {
-    if (selectedVersion && !selectedVersion.is_active) {
+    if (selectedVersion && !selectedVersion.is_deployed) {
       navigate(`/nodes/${id}/edit?version=${selectedVersion.version}`);
     }
   };
@@ -109,7 +110,7 @@ export function NodeDetailPage() {
     if (!selectedVersion || !id) return;
     
     try {
-      if (selectedVersion.is_active) {
+      if (selectedVersion.is_deployed) {
         // For now, just show a message that deactivation would happen
         toast({
           title: "Toggle Deployment",
@@ -167,14 +168,14 @@ export function NodeDetailPage() {
       setNodeVersions(prevVersions => 
         prevVersions.map(v => ({
           ...v,
-          is_active: v.version === version
+          is_deployed: v.version === version
         }))
       );
       
       // Update selected version
       const activatedVersion = nodeVersions.find(v => v.version === version);
       if (activatedVersion) {
-        setSelectedVersion({ ...activatedVersion, is_active: true });
+        setSelectedVersion({ ...activatedVersion, is_deployed: true });
       }
       
       // Refresh node data
@@ -249,7 +250,7 @@ export function NodeDetailPage() {
         node={node}
         selectedVersion={selectedVersion}
         propertiesCount={nodeParameters.length}
-        subnodesCount={node.subnodes?.length || 0}
+        subnodesCount={selectedVersion?.subnodes?.length || 0}
       />
 
       <Separator />
@@ -264,7 +265,7 @@ export function NodeDetailPage() {
 
       {/* Subnodes Section */}
       <SubnodesSection
-        subnodes={node.subnodes || []}
+        subnodes={selectedVersion?.subnodes || []}
       />
 
       {/* Version History Modal */}

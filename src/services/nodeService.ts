@@ -48,6 +48,9 @@ export interface Subnode {
   created_by: string;
   updated_by: string;
   versions: SubnodeVersion[];
+  version: number;
+  is_selected: boolean;
+  last_updated_at: string;
 }
 
 export interface NodeVersion {
@@ -73,6 +76,10 @@ export interface Node {
   total_versions: number;
   active_version: number | null;
   original_version: number;
+  created_at: string;
+  updated_at: string;
+  last_updated_by: string | null;
+  last_updated_at: string;
 }
 
 // API Service Functions
@@ -135,6 +142,18 @@ export const nodeService = {
   // Activate node version
   async activateNodeVersion(id: string, version: number): Promise<Node> {
     const response = await axiosInstance.post(`nodes/${id}/activate_version/${version}/`);
+    return response.data;
+  },
+
+  // Create node
+  async createNode(data: Partial<Node>): Promise<Node> {
+    const response = await axiosInstance.post('nodes/', data);
+    return response.data;
+  },
+
+  // Add parameters to node
+  async addParametersToNode(id: string, parameters: any[]): Promise<any> {
+    const response = await axiosInstance.post(`nodes/${id}/parameters_add/`, { parameters });
     return response.data;
   }
 };

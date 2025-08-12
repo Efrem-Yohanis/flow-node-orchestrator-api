@@ -24,8 +24,8 @@ export function NodeHeader({
   isLoading = false
 }: NodeHeaderProps) {
   const navigate = useNavigate();
-  const isDeployed = selectedVersion?.is_active;
-  const isEditable = selectedVersion && !selectedVersion.is_active;
+  const isDeployed = selectedVersion?.is_deployed;
+  const isEditable = selectedVersion && !selectedVersion.is_deployed;
 
   const handleTestNode = () => {
     navigate(`/nodes/${node.id}/test`);
