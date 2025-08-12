@@ -81,6 +81,8 @@ export function NodeDetailPage() {
       
       // Set selected version to active version or latest
       const activeVersion = versions.find(v => v.is_deployed) || versions[0];
+      console.log('Setting selectedVersion:', activeVersion);
+      console.log('Subnodes in selectedVersion:', activeVersion?.subnodes);
       setSelectedVersion(activeVersion);
     } catch (err: any) {
       console.error('Error fetching node versions:', err);
