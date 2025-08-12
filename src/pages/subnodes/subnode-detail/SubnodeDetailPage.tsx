@@ -1,253 +1,220 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { 
-  Download, 
-  Trash2, 
-  Edit, 
-  Upload,
-  ExternalLink
-} from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
-// Mock data
-const mockSubnode = {
-  id: "1",
-  name: "Data Validation Subnode",
-  scriptName: "validate_data.py",
-  parentNode: "User Data Processor",
-  parentNodeId: "1",
-  isDeployed: true,
-  createdAt: "2024-01-16",
-  createdBy: "Jane Smith",
-  version: "v1",
-  parameters: [
-    { 
-      id: "1", 
-      key: "threshold", 
-      valueType: "int", 
-      overrideValue: "15",
-      defaultValue: "10"
-    },
-    { 
-      id: "2", 
-      key: "tag_prefix", 
-      valueType: "string", 
-      overrideValue: "validated_",
-      defaultValue: "user_"
-    },
-    { 
-      id: "3", 
-      key: "enabled", 
-      valueType: "boolean", 
-      overrideValue: "true",
-      defaultValue: "true"
-    },
-  ]
-};
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useSubnode, subnodeService, SubnodeVersion } from "@/services/subnodeService";
+import { toast } from "sonner";
+import { SubnodeHeader } from "./components/SubnodeHeader";
+import { SubnodeInfo } from "./components/SubnodeInfo";
+import { ParameterValuesTable } from "./components/ParameterValuesTable";
+import { VersionHistoryModal } from "./components/VersionHistoryModal";
+import { CreateVersionModal } from "./components/CreateVersionModal";
 
 export function SubnodeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [subnode, setSubnode] = useState(mockSubnode);
-  const [showVersionDialog, setShowVersionDialog] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<SubnodeVersion | null>(null);
+  const [showVersionHistoryModal, setShowVersionHistoryModal] = useState(false);
+  const [showCreateVersionModal, setShowCreateVersionModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { data: subnode, loading, error, refetch } = useSubnode(id || '');
+  const [searchParams] = useSearchParams();
+  const versionParam = searchParams.get('version');
 
-  const handleDeploy = () => {
-    setSubnode(prev => ({ ...prev, isDeployed: true }));
-  };
+  // Set initial version when subnode data loads
+  useEffect(() => {
+    if (subnode && subnode.versions.length > 0) {
+      // If version is specified in URL, try to find and select it
+      if (versionParam) {
+        const versionNumber = parseInt(versionParam);
+        const targetVersion = subnode.versions.find(v => v.version === versionNumber);
+        if (targetVersion) {
+          setSelectedVersion(targetVersion);
+          return;
+        }
+      }
+      
+      // Find the active version first
+      const activeVersion = subnode.versions.find(v => v.is_deployed);
+      if (activeVersion) {
+        setSelectedVersion(activeVersion);
+      } else {
+        // If no active version, select the latest version by number
+        const sortedVersions = [...subnode.versions].sort((a, b) => b.version - a.version);
+        setSelectedVersion(sortedVersions[0]);
+      }
+    }
+  }, [subnode, versionParam]);
 
-  const handleUndeploy = () => {
-    setSubnode(prev => ({ ...prev, isDeployed: false }));
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading subnode...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleEdit = () => {
-    if (subnode.isDeployed) {
-      setShowVersionDialog(true);
-    } else {
-      navigate(`/subnodes/${id}/edit`);
+  if (error || !subnode) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Error loading subnode: {error}</p>
+          <button onClick={() => refetch()} className="btn">Try Again</button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleEditVersion = () => {
+    if (selectedVersion) {
+      navigate(`/subnodes/${id}/edit-version?version=${selectedVersion.version}`);
     }
   };
 
-  const handleCreateVersion = () => {
-    navigate(`/subnodes/${id}/edit?version=new`);
-    setShowVersionDialog(false);
+  const handleDeployVersion = async () => {
+    if (!selectedVersion) return;
+    
+    setIsLoading(true);
+    try {
+      await subnodeService.activateVersion(id!, selectedVersion.version);
+      toast.success(`Version ${selectedVersion.version} deployed successfully`);
+      await refetch();
+      // Update selected version to reflect deployment status
+      if (subnode) {
+        const updatedVersion = subnode.versions.find(v => v.version === selectedVersion.version);
+        if (updatedVersion) {
+          setSelectedVersion({ ...updatedVersion, is_deployed: true });
+        }
+      }
+    } catch (error) {
+      toast.error("Failed to deploy version");
+      console.error("Deploy error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDelete = () => {
-    navigate('/subnodes');
+  const handleUndeployVersion = async () => {
+    if (!selectedVersion) return;
+    
+    setIsLoading(true);
+    try {
+      await subnodeService.undeployVersion(id!, selectedVersion.version);
+      toast.success(`Version ${selectedVersion.version} undeployed successfully`);
+      await refetch();
+      // Update selected version to reflect undeployment status
+      setSelectedVersion({ ...selectedVersion, is_deployed: false });
+    } catch (error) {
+      toast.error("Failed to undeploy version");
+      console.error("Undeploy error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleExport = () => {
-    const dataStr = JSON.stringify(subnode, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${subnode.name}.json`;
-    link.click();
+  const handleCreateNewVersion = async (comment: string) => {
+    setIsLoading(true);
+    try {
+      const response = await subnodeService.createEditableVersion(id!, { version_comment: comment });
+      console.log("New version created:", response); // Debug log
+      
+      // The API returns full subnode detail with all versions
+      if (response.versions && response.versions.length > 0) {
+        // Find the newly created editable version
+        const newVersion = response.versions.find(v => v.is_editable && !v.is_deployed);
+        if (newVersion) {
+          toast.success(`New version ${newVersion.version} created successfully`);
+          setShowCreateVersionModal(false);
+          navigate(`/subnodes/${id}/edit-version?version=${newVersion.version}`);
+        } else {
+          toast.error("Could not find the newly created version");
+          await refetch();
+        }
+      } else {
+        toast.error("Invalid version data returned from server");
+        await refetch();
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || 
+                          error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          "Failed to create new version";
+      toast.error(errorMessage);
+      console.error("Create version error:", error);
+      console.error("Error response data:", error.response?.data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSelectVersion = (version: SubnodeVersion) => {
+    setSelectedVersion(version);
+    setShowVersionHistoryModal(false);
+  };
+
+  const handleActivateVersionFromModal = async (version: SubnodeVersion) => {
+    setIsLoading(true);
+    try {
+      await subnodeService.activateVersion(id!, version.version);
+      toast.success(`Version ${version.version} activated successfully`);
+      await refetch();
+      // Update selected version and close modal
+      setSelectedVersion({ ...version, is_deployed: true });
+      setShowVersionHistoryModal(false);
+    } catch (error) {
+      toast.error("Failed to activate version");
+      console.error("Activate error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-3xl font-bold">🧩 {subnode.name} ({subnode.version})</h1>
-          {subnode.isDeployed 
-            ? <Badge className="bg-green-500 text-white">🟢 Deployed</Badge>
-            : <Badge className="bg-red-500 text-white">🔴 Not Deployed</Badge>
-          }
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          {!subnode.isDeployed && (
-            <Button onClick={handleDeploy}>
-              <Upload className="h-4 w-4 mr-2" />
-              Deploy
-            </Button>
-          )}
-          
-          {subnode.isDeployed && (
-            <Button variant="outline" onClick={handleUndeploy}>
-              <Download className="h-4 w-4 mr-2" />
-              Undeploy
-            </Button>
-          )}
-          
-          <Button variant="outline" onClick={handleEdit}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit (Create New Version)
-          </Button>
-          
-        </div>
-      </div>
+      {/* Header Section */}
+      <SubnodeHeader
+        subnode={subnode}
+        selectedVersion={selectedVersion}
+        onEditVersion={handleEditVersion}
+        onDeployVersion={handleDeployVersion}
+        onUndeployVersion={handleUndeployVersion}
+        onCreateNewVersion={() => setShowCreateVersionModal(true)}
+        onShowVersionHistory={() => setShowVersionHistoryModal(true)}
+        isLoading={isLoading}
+      />
 
-      {/* SubNode Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>SubNode Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <h4 className="font-semibold">Script Name</h4>
-              <p className="text-muted-foreground">{subnode.scriptName}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold">Parent Node</h4>
-              <div className="flex items-center space-x-2">
-                <p className="text-muted-foreground">{subnode.parentNode}</p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate(`/nodes/${subnode.parentNodeId}`)}
-                >
-                  <ExternalLink className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold">Last Updated By</h4>
-              <p className="text-muted-foreground">{subnode.createdBy}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold">Last Modified Date</h4>
-              <p className="text-muted-foreground">{subnode.createdAt}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Subnode Basic Information */}
+      <SubnodeInfo 
+        subnode={subnode} 
+        selectedVersion={selectedVersion} 
+      />
 
-      {/* Parameters Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Parameters (Inherited from Parent Node)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Key</TableHead>
-                <TableHead>Value Type</TableHead>
-                <TableHead>Default Value</TableHead>
-                <TableHead>Override Value</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {subnode.parameters.map((param) => (
-                <TableRow key={param.id}>
-                  <TableCell className="font-medium">{param.key}</TableCell>
-                  <TableCell>{param.valueType}</TableCell>
-                  <TableCell>{param.defaultValue}</TableCell>
-                  <TableCell className="font-medium">
-                    {param.overrideValue !== param.defaultValue ? (
-                      <span className="text-blue-600">{param.overrideValue}</span>
-                    ) : (
-                      <span className="text-muted-foreground">{param.overrideValue}</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {param.overrideValue !== param.defaultValue ? (
-                      <Badge variant="secondary">🔧 Overridden</Badge>
-                    ) : (
-                      <Badge variant="outline">📋 Default</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Parameter Values Table */}
+      <ParameterValuesTable 
+        selectedVersion={selectedVersion} 
+      />
 
-      {/* Version Dialog */}
-      <Dialog open={showVersionDialog} onOpenChange={setShowVersionDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Version</DialogTitle>
-            <DialogDescription>
-              This SubNode is deployed. To make changes, a new version will be created. Continue?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowVersionDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateVersion}>
-              Create New Version
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Version History Modal */}
+      <VersionHistoryModal
+        open={showVersionHistoryModal}
+        onOpenChange={setShowVersionHistoryModal}
+        versions={subnode.versions}
+        selectedVersion={selectedVersion}
+        onSelectVersion={handleSelectVersion}
+        onActivateVersion={handleActivateVersionFromModal}
+        isLoading={isLoading}
+      />
+
+      {/* Create Version Modal */}
+      <CreateVersionModal
+        open={showCreateVersionModal}
+        onOpenChange={setShowCreateVersionModal}
+        onCreateVersion={handleCreateNewVersion}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

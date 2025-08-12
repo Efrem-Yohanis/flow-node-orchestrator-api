@@ -6,43 +6,48 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-
-// Mock data - would be replaced with actual API calls
-const mockParameter = {
-  id: "1",
-  key: "threshold",
-  defaultValue: "10",
-  parentNode: "User Data Processor",
-  nodeId: "1",
-  valueType: "int",
-  updatedBy: "John Doe",
-  updatedAt: "2024-01-15",
-  nodeStatus: "deployed"
-};
+import { useParameter, parameterService } from "@/services/parameterService";
+import { useToast } from "@/hooks/use-toast";
 
 export function EditParameterPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { data: parameter, loading, error } = useParameter(id!);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   
   const [formData, setFormData] = useState({
     key: "",
-    defaultValue: "",
-    valueType: "string"
+    default_value: "",
+    datatype: ""
   });
 
-  // Load parameter data on mount
+  // Load parameter data when parameter is fetched
   useEffect(() => {
-    // In a real app, this would fetch the parameter by ID
-    if (id) {
+    if (parameter) {
       setFormData({
-        key: mockParameter.key,
-        defaultValue: mockParameter.defaultValue,
-        valueType: mockParameter.valueType
+        key: parameter.key,
+        default_value: parameter.default_value,
+        datatype: parameter.datatype
       });
     }
-  }, [id]);
+  }, [parameter]);
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64">Loading parameter...</div>;
+  }
+
+  if (error || !parameter) {
+    return <div className="flex items-center justify-center h-64 text-red-500">Error: {error || 'Parameter not found'}</div>;
+  }
+
+  if (parameter.is_active) {
+    return (
+      <div className="flex items-center justify-center h-64 text-red-500">
+        Cannot edit a deployed parameter. Undeploy first.
+      </div>
+    );
+  }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -53,25 +58,44 @@ export function EditParameterPage() {
 
   const handleSave = async () => {
     if (!formData.key.trim()) {
-      toast.error("Parameter key is required");
+      toast({
+        title: "Validation Error",
+        description: "Parameter key is required",
+        variant: "destructive",
+      });
       return;
     }
 
-    if (!formData.defaultValue.trim()) {
-      toast.error("Default value is required");
+    if (!formData.default_value.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Default value is required",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await parameterService.updateParameter(parameter.id, {
+        key: formData.key,
+        default_value: formData.default_value,
+        datatype: formData.datatype,
+        required: parameter.required
+      });
       
-      toast.success("Parameter updated successfully!");
+      toast({
+        title: "Parameter updated successfully",
+        description: "The parameter has been saved.",
+      });
       navigate('/parameters');
     } catch (error) {
-      toast.error("Failed to update parameter");
+      toast({
+        title: "Error updating parameter",
+        description: "Failed to update the parameter. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -114,28 +138,30 @@ export function EditParameterPage() {
             <Label htmlFor="defaultValue">Default Value *</Label>
             <Input
               id="defaultValue"
-              value={formData.defaultValue}
-              onChange={(e) => handleInputChange('defaultValue', e.target.value)}
+              value={formData.default_value}
+              onChange={(e) => handleInputChange('default_value', e.target.value)}
               placeholder="Enter default value"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="valueType">Value Type</Label>
+            <Label htmlFor="datatype">Data Type</Label>
             <Select 
-              value={formData.valueType} 
-              onValueChange={(value) => handleInputChange('valueType', value)}
+              value={formData.datatype} 
+              onValueChange={(value) => handleInputChange('datatype', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select value type" />
+                <SelectValue placeholder="Select data type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="string">String</SelectItem>
-                <SelectItem value="int">Integer</SelectItem>
+                <SelectItem value="integer">Integer</SelectItem>
                 <SelectItem value="float">Float</SelectItem>
                 <SelectItem value="boolean">Boolean</SelectItem>
-                <SelectItem value="array">Array</SelectItem>
-                <SelectItem value="object">Object</SelectItem>
+                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="datetime">DateTime</SelectItem>
+                <SelectItem value="json">JSON</SelectItem>
+                <SelectItem value="file">File</SelectItem>
               </SelectContent>
             </Select>
           </div>

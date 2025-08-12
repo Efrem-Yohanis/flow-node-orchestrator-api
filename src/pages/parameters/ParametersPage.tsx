@@ -13,96 +13,106 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-// Mock data for parameters
-const mockParameters = [
-  {
-    id: "1",
-    key: "threshold",
-    defaultValue: "10",
-    parentNode: "User Data Processor",
-    nodeId: "1",
-    valueType: "int",
-    updatedBy: "John Doe",
-    updatedAt: "2024-01-15",
-    nodeStatus: "deployed"
-  },
-  {
-    id: "2",
-    key: "timeout",
-    defaultValue: "30",
-    parentNode: "Data Transformer",
-    nodeId: "2",
-    valueType: "int",
-    updatedBy: "Jane Smith",
-    updatedAt: "2024-01-16",
-    nodeStatus: "deployed"
-  },
-  {
-    id: "3",
-    key: "batch_size",
-    defaultValue: "100",
-    parentNode: "Batch Processor",
-    nodeId: "3",
-    valueType: "int",
-    updatedBy: "Mike Johnson",
-    updatedAt: "2024-01-17",
-    nodeStatus: "not_deployed"
-  },
-  {
-    id: "4",
-    key: "retry_count",
-    defaultValue: "3",
-    parentNode: "API Connector",
-    nodeId: "4",
-    valueType: "int",
-    updatedBy: "Sarah Wilson",
-    updatedAt: "2024-01-18",
-    nodeStatus: "deployed"
-  },
-  {
-    id: "5",
-    key: "enabled",
-    defaultValue: "true",
-    parentNode: "Feature Toggle",
-    nodeId: "5",
-    valueType: "boolean",
-    updatedBy: "Tom Brown",
-    updatedAt: "2024-01-19",
-    nodeStatus: "deployed"
-  },
-];
+import { useParameters, parameterService } from "@/services/parameterService";
+import { useToast } from "@/hooks/use-toast";
 
 export function ParametersPage() {
   const navigate = useNavigate();
-  const [parameters, setParameters] = useState(mockParameters);
+  const { data: parameters, loading, error, refetch } = useParameters();
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const { toast } = useToast();
 
   const filteredParameters = parameters.filter(param =>
-    param.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    param.parentNode.toLowerCase().includes(searchTerm.toLowerCase())
+    param.key.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusBadge = (status: string) => {
-    return status === "deployed" 
-      ? <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">🟢 Deployed</Badge>
-      : <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">🔴 Not Deployed</Badge>;
+  if (loading) {
+    return <div className="flex items-center justify-center h-64">Loading parameters...</div>;
+  }
+
+  if (error) {
+    return <div className="flex items-center justify-center h-64 text-red-500">Error: {error}</div>;
+  }
+
+  const handleClone = async (param: any) => {
+    try {
+      const clonedParam = await parameterService.cloneParameter(param.id);
+      toast({
+        title: "Parameter cloned successfully",
+        description: `Parameter ${clonedParam.key} has been created.`,
+      });
+      navigate(`/parameters/${clonedParam.id}/edit`);
+    } catch (error) {
+      toast({
+        title: "Error cloning parameter",
+        description: "Failed to clone the parameter. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleClone = (param: any) => {
-    const clonedParamId = Date.now().toString();
-    const clonedParam = {
-      ...param,
-      id: clonedParamId,
-      key: `${param.key}_copy`,
-      nodeStatus: "not_deployed",
-      updatedAt: new Date().toISOString().split('T')[0],
-      updatedBy: "Current User"
-    };
-    setParameters([...parameters, clonedParam]);
-    // Redirect to parameter edit page with cloned configuration
-    navigate(`/parameters/${clonedParamId}/edit`);
+  const handleExport = async (paramId: string) => {
+    try {
+      const blob = await parameterService.exportParameter(paramId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `parameter_${paramId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({
+        title: "Parameter exported successfully",
+        description: "The parameter has been downloaded as JSON.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error exporting parameter",
+        description: "Failed to export the parameter. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const importedParam = await parameterService.importParameter(file);
+      toast({
+        title: "Parameter imported successfully",
+        description: `Parameter ${importedParam.key} has been imported.`,
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error importing parameter",
+        description: "Failed to import the parameter. Please try again.",
+        variant: "destructive",
+      });
+    }
+    // Reset the input
+    event.target.value = '';
+  };
+
+  const handleDelete = async (paramId: string) => {
+    try {
+      await parameterService.deleteParameter(paramId);
+      toast({
+        title: "Parameter deleted successfully",
+        description: "The parameter has been removed.",
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error deleting parameter",
+        description: "Failed to delete the parameter. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -136,10 +146,19 @@ export function ParametersPage() {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Import
+          <Button variant="outline" size="sm" asChild>
+            <label htmlFor="import-file" className="cursor-pointer">
+              <Plus className="h-4 w-4 mr-2" />
+              Import
+            </label>
           </Button>
+          <input
+            id="import-file"
+            type="file"
+            accept=".json"
+            onChange={handleImport}
+            className="hidden"
+          />
           <Button onClick={() => navigate("/parameters/new")}>
             <Plus className="h-4 w-4 mr-2" />
             Create New Parameter
@@ -154,40 +173,16 @@ export function ParametersPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-foreground text-sm flex items-center justify-between">
                   {param.key}
-                  {param.nodeStatus === "deployed" 
-                    ? <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">🟢 Deployed</Badge>
-                    : <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">🔴 Not Deployed</Badge>
-                  }
+                  <Badge variant="outline" className="text-xs">
+                    {param.required ? 'Required' : 'Optional'}
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-1 gap-2 text-xs">
                   <div className="text-muted-foreground">
                     <span className="font-medium">Default Value:</span> 
-                    <span className="ml-1 font-mono">{param.defaultValue}</span>
-                  </div>
-                  <div className="text-muted-foreground">
-                    <span className="font-medium">Type:</span> 
-                    <Badge variant="outline" className="ml-2 text-xs">{param.valueType}</Badge>
-                  </div>
-                  <div className="text-muted-foreground">
-                    <span className="font-medium">Parent Node:</span>
-                    <Button 
-                      variant="link" 
-                      className="h-auto p-0 ml-1 text-xs"
-                      onClick={() => navigate(`/nodes/${param.nodeId}`)}
-                    >
-                      {param.parentNode}
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="text-muted-foreground">
-                    <span className="font-medium">Updated:</span> {param.updatedAt}
-                  </div>
-                  <div className="text-muted-foreground">
-                    <span className="font-medium">By:</span> {param.updatedBy}
+                    <span className="ml-1 font-mono">{param.default_value || 'None'}</span>
                   </div>
                 </div>
                 
@@ -202,7 +197,11 @@ export function ParametersPage() {
                       <Eye className="h-3 w-3 mr-1" />
                       View
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleExport(param.id)}
+                    >
                       <Download className="h-3 w-3 mr-1" />
                       Export
                     </Button>
@@ -214,7 +213,11 @@ export function ParametersPage() {
                       <Copy className="h-3 w-3 mr-1" />
                       Clone
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDelete(param.id)}
+                    >
                       <Trash2 className="h-3 w-3 mr-1" />
                       Delete
                     </Button>
@@ -231,10 +234,7 @@ export function ParametersPage() {
               <TableRow>
                 <TableHead>Key</TableHead>
                 <TableHead>Default Value</TableHead>
-                <TableHead>Parent Node</TableHead>
-                <TableHead>Node Status</TableHead>
-                <TableHead>Updated By</TableHead>
-                <TableHead>Updated At</TableHead>
+                <TableHead>Required</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -250,21 +250,12 @@ export function ParametersPage() {
                       {param.key}
                     </Button>
                   </TableCell>
-                  <TableCell>{param.defaultValue}</TableCell>
+                  <TableCell>{param.default_value}</TableCell>
                   <TableCell>
-                    <Button 
-                      variant="link" 
-                      className="h-auto p-0"
-                      onClick={() => navigate(`/nodes/${param.nodeId}`)}
-                    >
-                      {param.parentNode}
-                    </Button>
+                    <Badge variant={param.required ? "default" : "secondary"}>
+                      {param.required ? "Required" : "Optional"}
+                    </Badge>
                   </TableCell>
-                  <TableCell>
-                    {getStatusBadge(param.nodeStatus)}
-                  </TableCell>
-                  <TableCell>{param.updatedBy}</TableCell>
-                  <TableCell>{param.updatedAt}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
                       <Button 
@@ -274,7 +265,11 @@ export function ParametersPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleExport(param.id)}
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
                       <Button 
@@ -284,7 +279,11 @@ export function ParametersPage() {
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDelete(param.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

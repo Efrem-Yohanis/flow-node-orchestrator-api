@@ -14,10 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { 
   Edit, 
-  Download,
-  Trash2,
-  Save,
-  ExternalLink
+  Play,
+  Square
 } from "lucide-react";
 import {
   AlertDialog,
@@ -38,107 +36,75 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-// Mock data
-const mockParameter = {
-  id: "1",
-  key: "threshold",
-  defaultValue: "10",
-  valueType: "int",
-  parentNode: {
-    id: "1",
-    name: "User Data Processor",
-    status: "deployed"
-  },
-  lastUpdatedBy: "Jane Smith",
-  lastUpdatedAt: "2024-01-18 16:45:00",
-  subnodeUsage: [
-    {
-      id: "1",
-      subnodeName: "Data Validation",
-      overrideValue: "15",
-      subnodeStatus: "deployed",
-      parentNodeName: "User Data Processor"
-    },
-    {
-      id: "2", 
-      subnodeName: "Data Transform",
-      overrideValue: "10",
-      subnodeStatus: "not_deployed", 
-      parentNodeName: "User Data Processor"
-    },
-    {
-      id: "3",
-      subnodeName: "Data Cleanup",
-      overrideValue: "20",
-      subnodeStatus: "deployed",
-      parentNodeName: "User Data Processor"
-    }
-  ]
-};
+import { useParameter, parameterService } from "@/services/parameterService";
+import { useToast } from "@/hooks/use-toast";
 
 export function ParameterDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [parameter, setParameter] = useState(mockParameter);
-  const [editingOverrides, setEditingOverrides] = useState<{[key: string]: string}>({});
+  const { data: parameter, loading, error, refetch } = useParameter(id!);
   const [showVersionDialog, setShowVersionDialog] = useState(false);
+  const [deploying, setDeploying] = useState(false);
+  const { toast } = useToast();
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64">Loading parameter...</div>;
+  }
+
+  if (error || !parameter) {
+    return <div className="flex items-center justify-center h-64 text-red-500">Error: {error || 'Parameter not found'}</div>;
+  }
 
   const handleEdit = () => {
-    if (parameter.parentNode.status === "deployed") {
-      setShowVersionDialog(true);
-    } else {
-      navigate(`/parameters/${id}/edit`);
+    if (parameter.is_active) {
+      toast({
+        title: "Cannot edit deployed parameter",
+        description: "Undeploy the parameter first to edit it.",
+        variant: "destructive",
+      });
+      return;
+    }
+    navigate(`/parameters/${id}/edit`);
+  };
+
+  const handleDeploy = async () => {
+    setDeploying(true);
+    try {
+      await parameterService.deployParameter(parameter.id);
+      toast({
+        title: "Parameter deployed successfully",
+        description: "The parameter is now active.",
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error deploying parameter",
+        description: "Failed to deploy the parameter. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeploying(false);
     }
   };
 
-  const handleCreateVersion = () => {
-    navigate(`/parameters/${id}/edit?version=new`);
-    setShowVersionDialog(false);
-  };
-
-  const handleDelete = () => {
-    navigate('/parameters');
-  };
-
-  const handleExport = () => {
-    const dataStr = JSON.stringify(parameter, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `parameter_${parameter.key}.json`;
-    link.click();
-  };
-
-  const getStatusBadge = (status: string) => {
-    return status === "deployed" 
-      ? <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">🟢 Deployed</Badge>
-      : <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">🔴 Not Deployed</Badge>;
-  };
-
-  const handleOverrideEdit = (subnodeId: string, value: string) => {
-    setEditingOverrides(prev => ({
-      ...prev,
-      [subnodeId]: value
-    }));
-  };
-
-  const handleSaveOverride = (subnodeId: string) => {
-    const newValue = editingOverrides[subnodeId];
-    setParameter(prev => ({
-      ...prev,
-      subnodeUsage: prev.subnodeUsage.map(usage =>
-        usage.id === subnodeId 
-          ? { ...usage, overrideValue: newValue }
-          : usage
-      )
-    }));
-    setEditingOverrides(prev => {
-      const updated = { ...prev };
-      delete updated[subnodeId];
-      return updated;
-    });
+  const handleUndeploy = async () => {
+    setDeploying(true);
+    try {
+      await parameterService.undeployParameter(parameter.id);
+      toast({
+        title: "Parameter undeployed successfully",
+        description: "The parameter is now in draft mode.",
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error undeploying parameter",
+        description: "Failed to undeploy the parameter. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeploying(false);
+    }
   };
 
   return (
@@ -147,169 +113,88 @@ export function ParameterDetailPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">🧩 {parameter.key}</h1>
+            <div className="flex items-center space-x-3">
+              <h1 className="text-3xl font-bold">🧩 {parameter.key}</h1>
+              <Badge variant={parameter.is_active ? "default" : "secondary"}>
+                {parameter.is_active ? "🟢 Published" : "⚪ Draft"}
+              </Badge>
+            </div>
             <div className="flex items-center space-x-3 mt-2">
               <span className="text-muted-foreground">Default Value:</span>
-              <span className="font-medium">{parameter.defaultValue}</span>
-              <Badge variant="outline">{parameter.valueType}</Badge>
+              <span className="font-medium">{parameter.default_value}</span>
+              <Badge variant={parameter.required ? "default" : "secondary"}>
+                {parameter.required ? "Required" : "Optional"}
+              </Badge>
             </div>
           </div>
           
           <div className="flex items-center space-x-2">
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export JSON
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleEdit}
+              disabled={parameter.is_active}
+              title="Edit Parameter"
+            >
+              <Edit className="h-4 w-4" />
             </Button>
-            
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Parameter</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete this parameter? This action cannot be undone and will affect all associated subnodes.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+
+            {parameter.is_active ? (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleUndeploy}
+                disabled={deploying}
+                title="Undeploy Parameter"
+              >
+                <Square className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleDeploy}
+                disabled={deploying}
+                title="Deploy Parameter"
+              >
+                <Play className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <h4 className="font-medium text-muted-foreground">Parent Node</h4>
-            <Button 
-              variant="link" 
-              className="h-auto p-0 font-medium"
-              onClick={() => navigate(`/nodes/${parameter.parentNode.id}`)}
-            >
-              {parameter.parentNode.name}
-              <ExternalLink className="h-3 w-3 ml-1" />
-            </Button>
-          </div>
-          <div>
-            <h4 className="font-medium text-muted-foreground">Node Status</h4>
-            <div className="mt-1">
-              {getStatusBadge(parameter.parentNode.status)}
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium text-muted-foreground">Last Updated By</h4>
-            <p className="font-medium">{parameter.lastUpdatedBy}</p>
-          </div>
-          <div>
-            <h4 className="font-medium text-muted-foreground">Last Updated At</h4>
-            <p className="font-medium">{parameter.lastUpdatedAt}</p>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
         </div>
       </div>
 
-      {/* Subnode Usage Section */}
+      {/* Parameter Info Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Subnodes Using This Parameter ({parameter.subnodeUsage.length})</CardTitle>
+          <CardTitle>Parameter Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Subnode Name</TableHead>
-                <TableHead>Override Value</TableHead>
-                <TableHead>Subnode Status</TableHead>
-                <TableHead>Node (Parent)</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {parameter.subnodeUsage.map((usage) => (
-                <TableRow key={usage.id}>
-                  <TableCell>
-                    <Button 
-                      variant="link" 
-                      className="h-auto p-0 font-medium"
-                      onClick={() => navigate(`/subnodes/${usage.id}`)}
-                    >
-                      {usage.subnodeName}
-                    </Button>
-                  </TableCell>
-                  <TableCell>
-                    {editingOverrides[usage.id] !== undefined ? (
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          value={editingOverrides[usage.id]}
-                          onChange={(e) => handleOverrideEdit(usage.id, e.target.value)}
-                          className="w-24"
-                        />
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleSaveOverride(usage.id)}
-                        >
-                          <Save className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <span 
-                        className={usage.overrideValue !== parameter.defaultValue ? "text-blue-600 font-medium" : "text-muted-foreground"}
-                      >
-                        {usage.overrideValue}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(usage.subnodeStatus)}</TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="link" 
-                      className="h-auto p-0"
-                      onClick={() => navigate(`/nodes/${parameter.parentNode.id}`)}
-                    >
-                      {usage.parentNodeName}
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleOverrideEdit(usage.id, usage.overrideValue)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit Value
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="space-y-4">
+            <div>
+              <span className="font-medium text-muted-foreground">Parameter Key:</span>
+              <p className="font-mono text-lg">{parameter.key}</p>
+            </div>
+            <div>
+              <span className="font-medium text-muted-foreground">Default Value:</span>
+              <p className="font-mono">{parameter.default_value}</p>
+            </div>
+            <div>
+              <span className="font-medium text-muted-foreground">Data Type:</span>
+              <p className="font-mono">{parameter.datatype}</p>
+            </div>
+            <div>
+              <span className="font-medium text-muted-foreground">Required:</span>
+              <Badge variant={parameter.required ? "default" : "secondary"} className="ml-2">
+                {parameter.required ? "Required" : "Optional"}
+              </Badge>
+            </div>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Version Dialog */}
-      <Dialog open={showVersionDialog} onOpenChange={setShowVersionDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Version</DialogTitle>
-            <DialogDescription>
-              This parameter's parent node is deployed. A new version will be created to edit. Do you want to continue?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowVersionDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateVersion}>
-              Create New Version
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
