@@ -81,8 +81,9 @@ export function NodeDetailPage() {
       
       // Set selected version to active version or latest
       const activeVersion = versions.find(v => v.is_deployed) || versions[0];
-      console.log('Setting selectedVersion:', activeVersion);
-      console.log('Subnodes in selectedVersion:', activeVersion?.subnodes);
+      console.log('🔍 Active version found:', activeVersion);
+      console.log('🔍 Subnodes in active version:', activeVersion?.subnodes);
+      console.log('🔍 Subnodes length:', activeVersion?.subnodes?.length);
       setSelectedVersion(activeVersion);
     } catch (err: any) {
       console.error('Error fetching node versions:', err);
@@ -266,9 +267,15 @@ export function NodeDetailPage() {
       <Separator />
 
       {/* Subnodes Section */}
-      <SubnodesSection
-        subnodes={selectedVersion?.subnodes || []}
-      />
+      {(() => {
+        console.log('🔍 Rendering SubnodesSection - selectedVersion:', selectedVersion);
+        console.log('🔍 Rendering SubnodesSection - subnodes:', selectedVersion?.subnodes);
+        return (
+          <SubnodesSection
+            subnodes={selectedVersion?.subnodes || []}
+          />
+        );
+      })()}
 
       {/* Version History Modal */}
       <VersionHistoryModal

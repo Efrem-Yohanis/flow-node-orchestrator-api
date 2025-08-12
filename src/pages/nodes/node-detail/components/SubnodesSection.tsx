@@ -27,6 +27,9 @@ interface SubnodesSectionProps {
 export function SubnodesSection({ subnodes }: SubnodesSectionProps) {
   const navigate = useNavigate();
 
+  console.log('🔍 SubnodesSection received subnodes:', subnodes);
+  console.log('🔍 SubnodesSection subnodes length:', subnodes.length);
+
   return (
     <Card>
       <CardHeader>
