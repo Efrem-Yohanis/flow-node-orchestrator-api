@@ -121,10 +121,11 @@ export function NodeDetailPage() {
     
     try {
       if (selectedVersion.is_deployed) {
-        // For now, just show a message that deactivation would happen
+        // Undeploy the version
+        await nodeService.undeployNodeVersion(id, selectedVersion.version);
         toast({
-          title: "Toggle Deployment",
-          description: `Version ${selectedVersion.version} deployment would be toggled`,
+          title: "Version Undeployed",
+          description: `Version ${selectedVersion.version} has been undeployed`,
         });
       } else {
         // Check if another node is currently active
@@ -143,23 +144,15 @@ export function NodeDetailPage() {
         }
         
         // Deploy/activate version
-        await nodeService.activateNodeVersion(id, selectedVersion.version);
+        await nodeService.deployNodeVersion(id, selectedVersion.version);
         toast({
           title: "Node Activated",
           description: `Node "${node?.name}" version ${selectedVersion.version} is now active`,
         });
-        
-        // Refresh versions and active node status
-        await fetchNodeVersions();
-        
-        // Refresh node data
-        const updatedNode = await nodeService.getNode(id);
-        setNode(updatedNode);
-        
-        // Update active node state
-        const newActiveNode = await nodeService.getActiveNode();
-        setCurrentActiveNode(newActiveNode);
       }
+      
+      // Refresh the page to reflect changes
+      window.location.reload();
       
     } catch (err: any) {
       console.error('Error toggling version deployment:', err);
@@ -206,33 +199,20 @@ export function NodeDetailPage() {
         }
       }
       
-      await nodeService.activateNodeVersion(id, version.version);
-      
-      // Update versions state
-      setNodeVersions(prevVersions => 
-        prevVersions.map(v => ({
-          ...v,
-          is_deployed: v.version === version.version
-        }))
-      );
-      
-      // Update selected version
-      setSelectedVersion({ ...version, is_deployed: true });
-      
-      // Refresh node data
-      const updatedNode = await nodeService.getNode(id);
-      setNode(updatedNode);
-      
-      // Update active node state
-      const newActiveNode = await nodeService.getActiveNode();
-      setCurrentActiveNode(newActiveNode);
+      // Deploy the version using new API
+      await nodeService.deployNodeVersion(id, version.version);
       
       toast({
         title: "Node Activated",
         description: `Node "${node?.name}" version ${version.version} is now active`,
       });
       
+      // Close modal and redirect to detail page showing the activated version
       setVersionHistoryOpen(false);
+      
+      // Refresh the page to show the activated version
+      window.location.reload();
+      
     } catch (err: any) {
       console.error('Error activating node version:', err);
       toast({

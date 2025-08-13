@@ -121,15 +121,15 @@ export const nodeService = {
     await axiosInstance.delete(`nodes/${id}/`);
   },
 
-  // Deploy node
-  async deployNode(id: string): Promise<{ status: string }> {
-    const response = await axiosInstance.post(`nodes/${id}/deploy/`);
+  // Deploy/Activate a version
+  async deployNodeVersion(id: string, version: number): Promise<{ status: string }> {
+    const response = await axiosInstance.post(`nodes/${id}/deployed/${version}/`);
     return response.data;
   },
 
-  // Undeploy node
-  async undeployNode(id: string): Promise<{ status: string }> {
-    const response = await axiosInstance.post(`nodes/${id}/undeploy/`);
+  // Undeploy a version
+  async undeployNodeVersion(id: string, version: number): Promise<{ status: string }> {
+    const response = await axiosInstance.post(`nodes/${id}/undeploy_version/${version}/`);
     return response.data;
   },
 
@@ -139,10 +139,23 @@ export const nodeService = {
     return response.data;
   },
 
-  // Activate node version (will deactivate other active nodes)
-  async activateNodeVersion(id: string, version: number): Promise<Node> {
-    const response = await axiosInstance.post(`nodes/${id}/activate_version/${version}/`);
+  // Get specific node version
+  async getNodeVersion(id: string, version: number): Promise<NodeVersion> {
+    const response = await axiosInstance.get(`nodes/${id}/versions/${version}/`);
     return response.data;
+  },
+
+  // Create a new version
+  async createNodeVersion(id: string, fromVersion: number): Promise<NodeVersion> {
+    const response = await axiosInstance.post(`nodes/${id}/${fromVersion}/create_version/`);
+    return response.data;
+  },
+
+  // Activate node version (will deactivate other active nodes) - keeping for compatibility
+  async activateNodeVersion(id: string, version: number): Promise<Node> {
+    const response = await this.deployNodeVersion(id, version);
+    // Return updated node data
+    return await this.getNode(id);
   },
 
   // Get currently active node across the system
