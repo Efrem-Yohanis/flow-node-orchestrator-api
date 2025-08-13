@@ -178,7 +178,7 @@ export function NodeDetailPage() {
     }
   };
 
-  const handleViewVersion = (version: NodeVersion) => {
+  const handleSelectVersion = (version: NodeVersion) => {
     setSelectedVersion(version);
     setVersionHistoryOpen(false);
     toast({
@@ -187,7 +187,7 @@ export function NodeDetailPage() {
     });
   };
 
-  const activateNodeVersion = async (version: number) => {
+  const activateNodeVersion = async (version: NodeVersion) => {
     if (!id) return;
     
     try {
@@ -206,21 +206,18 @@ export function NodeDetailPage() {
         }
       }
       
-      await nodeService.activateNodeVersion(id, version);
+      await nodeService.activateNodeVersion(id, version.version);
       
       // Update versions state
       setNodeVersions(prevVersions => 
         prevVersions.map(v => ({
           ...v,
-          is_deployed: v.version === version
+          is_deployed: v.version === version.version
         }))
       );
       
       // Update selected version
-      const activatedVersion = nodeVersions.find(v => v.version === version);
-      if (activatedVersion) {
-        setSelectedVersion({ ...activatedVersion, is_deployed: true });
-      }
+      setSelectedVersion({ ...version, is_deployed: true });
       
       // Refresh node data
       const updatedNode = await nodeService.getNode(id);
@@ -232,7 +229,7 @@ export function NodeDetailPage() {
       
       toast({
         title: "Node Activated",
-        description: `Node "${node?.name}" version ${version} is now active`,
+        description: `Node "${node?.name}" version ${version.version} is now active`,
       });
       
       setVersionHistoryOpen(false);
@@ -342,9 +339,10 @@ export function NodeDetailPage() {
         open={versionHistoryOpen}
         onOpenChange={setVersionHistoryOpen}
         versions={nodeVersions}
-        loading={nodeVersionsLoading}
+        selectedVersion={selectedVersion}
+        onSelectVersion={handleSelectVersion}
         onActivateVersion={activateNodeVersion}
-        onViewVersion={handleViewVersion}
+        isLoading={nodeVersionsLoading}
       />
 
       {/* Back to Nodes Button */}
