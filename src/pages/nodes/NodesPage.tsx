@@ -209,10 +209,10 @@ export function NodesPage() {
                 
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground">
-                    <span className="font-medium">Subnodes:</span> {node.subnodes.length}
+                    <span className="font-medium">Subnodes:</span> {node.subnodes?.length || 0}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    <span className="font-medium">Parameters:</span> {node.subnodes.reduce((total, subnode) => total + subnode.parameters.length, 0)}
+                    <span className="font-medium">Parameters:</span> {node.subnodes?.reduce((total, subnode) => total + (subnode.parameters?.length || 0), 0) || 0}
                   </div>
                 </div>
                 
