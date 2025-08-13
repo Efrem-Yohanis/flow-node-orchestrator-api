@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Play, Square, History, Plus, TestTube } from "lucide-react";
+import { Edit, Play, Square, History, Plus, TestTube, Trash2, Copy, Download } from "lucide-react";
 import { Node, NodeVersion } from "@/services/nodeService";
 import { useNavigate } from "react-router-dom";
 
@@ -11,6 +11,9 @@ interface NodeHeaderProps {
   onToggleDeployment: () => void;
   onCreateNewVersion: () => void;
   onShowVersionHistory: () => void;
+  onDeleteVersion: () => void;
+  onCloneVersion: () => void;
+  onExportVersion: () => void;
   isLoading?: boolean;
 }
 
@@ -21,6 +24,9 @@ export function NodeHeader({
   onToggleDeployment,
   onCreateNewVersion,
   onShowVersionHistory,
+  onDeleteVersion,
+  onCloneVersion,
+  onExportVersion,
   isLoading = false
 }: NodeHeaderProps) {
   const navigate = useNavigate();
@@ -104,6 +110,36 @@ export function NodeHeader({
             title="Version History"
           >
             <History className="h-4 w-4" />
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={onExportVersion}
+            disabled={isLoading}
+            size="icon"
+            title="Export Version"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={onCloneVersion}
+            disabled={isLoading}
+            size="icon"
+            title="Clone Version"
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={onDeleteVersion}
+            disabled={isLoading || isDeployed}
+            size="icon"
+            title={isDeployed ? "Cannot delete deployed version" : "Delete Version"}
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>

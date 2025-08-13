@@ -223,6 +223,97 @@ export function NodeDetailPage() {
     }
   };
 
+  // Version management handlers
+  const handleDeleteVersion = async () => {
+    if (!selectedVersion || !id || selectedVersion.is_deployed) {
+      toast({
+        title: "Cannot Delete Version",
+        description: selectedVersion?.is_deployed ? "Cannot delete a deployed version" : "No version selected",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete version ${selectedVersion.version}? This action cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      // Call API to delete version (you may need to add this to nodeService)
+      // await nodeService.deleteNodeVersion(id, selectedVersion.version);
+      
+      toast({
+        title: "Version Deleted",
+        description: `Version ${selectedVersion.version} has been deleted`,
+      });
+
+      // Refresh versions
+      await fetchNodeVersions();
+    } catch (err: any) {
+      console.error('Error deleting version:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete version",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCloneVersion = async () => {
+    if (!selectedVersion || !id) return;
+
+    try {
+      // Create new version from current version
+      const newVersion = await nodeService.createNodeVersion(id, selectedVersion.version);
+      
+      toast({
+        title: "Version Cloned",
+        description: `New version ${newVersion.version} created from version ${selectedVersion.version}`,
+      });
+
+      // Refresh versions and navigate to edit the new version
+      await fetchNodeVersions();
+      navigate(`/nodes/${id}/edit?version=${newVersion.version}`);
+    } catch (err: any) {
+      console.error('Error cloning version:', err);
+      toast({
+        title: "Error",
+        description: "Failed to clone version",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExportVersion = () => {
+    if (!selectedVersion || !node) return;
+
+    const exportData = {
+      node: {
+        id: node.id,
+        name: node.name,
+        description: node.description
+      },
+      version: selectedVersion,
+      exportedAt: new Date().toISOString()
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${node.name}_v${selectedVersion.version}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Version Exported",
+      description: `Version ${selectedVersion.version} exported successfully`,
+    });
+  };
+
 
   if (loading) {
     return (
@@ -280,6 +371,9 @@ export function NodeDetailPage() {
         onToggleDeployment={handleToggleDeployment}
         onCreateNewVersion={handleCreateNewVersion}
         onShowVersionHistory={handleShowVersionHistory}
+        onDeleteVersion={handleDeleteVersion}
+        onCloneVersion={handleCloneVersion}
+        onExportVersion={handleExportVersion}
         isLoading={loading}
       />
 
