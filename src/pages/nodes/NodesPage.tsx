@@ -63,9 +63,21 @@ export function NodesPage() {
   const fetchNodes = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await axios.get("http://127.0.0.1:8000/api/node-families/");
-      setNodes(response.data);
+      
+      // Ensure we always set an array
+      const data = response.data;
+      if (Array.isArray(data)) {
+        setNodes(data);
+      } else {
+        console.error("API response is not an array:", data);
+        setNodes([]);
+        setError("Invalid response format from server");
+      }
     } catch (err: any) {
+      console.error("Error fetching nodes:", err);
+      setNodes([]); // Ensure nodes is always an array
       const errorMessage = err.response?.data?.error || err.message || "Failed to fetch nodes";
       setError(errorMessage);
       toast({
