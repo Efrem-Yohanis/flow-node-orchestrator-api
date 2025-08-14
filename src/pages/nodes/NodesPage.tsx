@@ -63,7 +63,7 @@ export function NodesPage() {
   const fetchNodes = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://127.0.0.1:8000/api/nodes/");
+      const response = await axios.get("http://127.0.0.1:8000/api/node-families/");
       setNodes(response.data);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || "Failed to fetch nodes";
@@ -84,7 +84,7 @@ export function NodesPage() {
 
   const handleDelete = async (nodeId: string) => {
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/nodes/${nodeId}/`);
+      await axios.delete(`http://127.0.0.1:8000/api/node-families/${nodeId}/`);
       setNodes(nodes.filter(node => node.id !== nodeId));
       toast({
         title: "Node Deleted",
@@ -116,7 +116,7 @@ export function NodesPage() {
         name: `${node.name} (Copy)`,
         version: 1
       };
-      const response = await axios.post("http://127.0.0.1:8000/api/nodes/", clonedNodeData);
+      const response = await axios.post("http://127.0.0.1:8000/api/node-families/", clonedNodeData);
       await fetchNodes(); // Refresh the list
       navigate(`/nodes/${response.data.id}/edit`);
     } catch (err: any) {
