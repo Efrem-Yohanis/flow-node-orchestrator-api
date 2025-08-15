@@ -34,7 +34,7 @@ export const parameterService = {
   // List all parameters
   async getParameters(): Promise<Parameter[]> {
     const response = await axiosInstance.get('parameters/');
-    return response.data;
+    return Array.isArray(response.data.results) ? response.data.results : [];
   },
 
   // Get single parameter
