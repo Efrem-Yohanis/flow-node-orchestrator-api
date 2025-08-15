@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useParametersWithMetadata, parameterService } from "@/services/parameterService";
 import { useToast } from "@/hooks/use-toast";
 import { useSection } from "@/contexts/SectionContext";
@@ -30,6 +31,11 @@ export function ParametersPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const { toast } = useToast();
   const { setCurrentSection, setStatusCounts } = useSection();
+  
+  // Import preview modal state
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Extract parameters array from response
   const parameters = parametersResponse.results || [];
@@ -107,7 +113,7 @@ export function ParametersPage() {
     if (!file) return;
 
     try {
-      // Read and validate JSON structure before importing
+      // Read and validate JSON structure before showing preview
       const fileContent = await file.text();
       const jsonData = JSON.parse(fileContent);
       
@@ -121,25 +127,50 @@ export function ParametersPage() {
         return;
       }
 
-      const importedParam = await parameterService.importParameter(file);
-      toast({
-        title: "Parameter imported successfully",
-        description: `Parameter ${importedParam.key} has been imported.`,
+      // Extract preview data and show modal
+      setPreviewData({
+        key: jsonData.key,
+        default_value: jsonData.default_value,
+        datatype: jsonData.datatype
       });
-      refetch();
+      setSelectedFile(file);
+      setShowPreviewModal(true);
+      
     } catch (error: any) {
-      let errorMessage = "Failed to import the parameter. Please try again.";
+      let errorMessage = "Failed to read the parameter file. Please try again.";
       if (error.message?.includes("JSON")) {
         errorMessage = "Invalid JSON file format.";
       }
       toast({
-        title: "Error importing parameter",
+        title: "Error reading file",
         description: errorMessage,
         variant: "destructive",
       });
     }
     // Reset the input
     event.target.value = '';
+  };
+
+  const confirmImport = async () => {
+    if (!selectedFile) return;
+
+    try {
+      const importedParam = await parameterService.importParameter(selectedFile);
+      toast({
+        title: "Parameter imported successfully",
+        description: `Parameter ${importedParam.key} has been imported.`,
+      });
+      refetch();
+      setShowPreviewModal(false);
+      setSelectedFile(null);
+      setPreviewData(null);
+    } catch (error: any) {
+      toast({
+        title: "Error importing parameter",
+        description: "Failed to import the parameter. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = async (paramId: string) => {
@@ -335,6 +366,53 @@ export function ParametersPage() {
           </Table>
         </div>
       )}
+      
+      {/* Import Preview Modal */}
+      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Import Parameter Preview</DialogTitle>
+            <DialogDescription>
+              Review the parameter details before importing.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {previewData && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Key</label>
+                  <div className="mt-1 p-2 bg-muted rounded border text-sm font-mono">
+                    {previewData.key}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Data Type</label>
+                  <div className="mt-1 p-2 bg-muted rounded border text-sm">
+                    {previewData.datatype}
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Default Value</label>
+                <div className="mt-1 p-2 bg-muted rounded border text-sm font-mono">
+                  {previewData.default_value}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPreviewModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmImport}>
+              Import Parameter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
