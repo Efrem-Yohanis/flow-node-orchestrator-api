@@ -29,7 +29,7 @@ export function ParametersPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const { toast } = useToast();
 
-  const filteredParameters = parameters.filter(param =>
+  const filteredParameters = (Array.isArray(parameters) ? parameters : []).filter(param =>
     param.key.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
