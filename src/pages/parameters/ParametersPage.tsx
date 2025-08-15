@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Download, Settings, Trash2, Eye, Edit, Grid2X2, List, Copy, MoreVertical } from "lucide-react";
+import { Plus, Download, Upload, Settings, Trash2, Eye, Edit, Grid2X2, List, Copy, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -82,21 +82,44 @@ export function ParametersPage() {
     }
   };
 
+  const validateParameterJSON = (jsonData: any): boolean => {
+    const requiredFields = ['key', 'default_value', 'datatype'];
+    return requiredFields.every(field => field in jsonData);
+  };
+
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
+      // Read and validate JSON structure before importing
+      const fileContent = await file.text();
+      const jsonData = JSON.parse(fileContent);
+      
+      if (!validateParameterJSON(jsonData)) {
+        toast({
+          title: "Invalid JSON structure",
+          description: "The JSON file must contain 'key', 'default_value', and 'datatype' fields.",
+          variant: "destructive",
+        });
+        event.target.value = '';
+        return;
+      }
+
       const importedParam = await parameterService.importParameter(file);
       toast({
         title: "Parameter imported successfully",
         description: `Parameter ${importedParam.key} has been imported.`,
       });
       refetch();
-    } catch (error) {
+    } catch (error: any) {
+      let errorMessage = "Failed to import the parameter. Please try again.";
+      if (error.message?.includes("JSON")) {
+        errorMessage = "Invalid JSON file format.";
+      }
       toast({
         title: "Error importing parameter",
-        description: "Failed to import the parameter. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -112,10 +135,14 @@ export function ParametersPage() {
         description: "The parameter has been removed.",
       });
       refetch();
-    } catch (error) {
+    } catch (error: any) {
+      let errorMessage = "Failed to delete the parameter. Please try again.";
+      if (error.response?.data?.detail?.includes("active/deployed")) {
+        errorMessage = "Cannot delete an active/deployed parameter. Undeploy it first.";
+      }
       toast({
         title: "Error deleting parameter",
-        description: "Failed to delete the parameter. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -154,7 +181,7 @@ export function ParametersPage() {
           </div>
           <Button variant="outline" size="sm" asChild>
             <label htmlFor="import-file" className="cursor-pointer">
-              <Plus className="h-4 w-4" />
+              <Upload className="h-4 w-4" />
             </label>
           </Button>
           <input
@@ -178,8 +205,8 @@ export function ParametersPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-foreground text-sm flex items-center justify-between">
                   {param.key}
-                  <Badge variant="outline" className="text-xs">
-                    {param.required ? 'Required' : 'Optional'}
+                  <Badge variant={param.is_active ? "default" : "secondary"} className="text-xs">
+                    {param.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </CardTitle>
               </CardHeader>
@@ -233,7 +260,7 @@ export function ParametersPage() {
               <TableRow>
                 <TableHead>Key</TableHead>
                 <TableHead>Default Value</TableHead>
-                <TableHead>Required</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -251,8 +278,8 @@ export function ParametersPage() {
                   </TableCell>
                   <TableCell>{param.default_value}</TableCell>
                   <TableCell>
-                    <Badge variant={param.required ? "default" : "secondary"}>
-                      {param.required ? "Required" : "Optional"}
+                    <Badge variant={param.is_active ? "default" : "secondary"}>
+                      {param.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
