@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useSection } from "@/contexts/SectionContext";
 import axios from "axios";
 
 interface NodeFamily {
@@ -85,6 +86,7 @@ export function NodesPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setStatusCounts } = useSection();
 
   useEffect(() => {
     fetchNodes();
@@ -100,6 +102,12 @@ export function NodesPage() {
       const data = response.data;
       if (data && Array.isArray(data.results)) {
         setNodes(data.results);
+        // Update the header statistics
+        setStatusCounts({
+          total: data.total || 0,
+          deployed: data.published || 0,
+          drafted: data.draft || 0
+        });
       } else {
         console.error("API response does not contain results array:", data);
         setNodes([]);
@@ -225,12 +233,11 @@ export function NodesPage() {
             </Button>
           </div>
           <Button variant="outline" size="sm">
-            <Upload className="h-4 w-4 mr-2" />
-            Import Node
+            <Upload className="h-4 w-4" />
           </Button>
           <Button onClick={() => navigate("/nodes/new")}>
             <Plus className="h-4 w-4 mr-2" />
-            Create New Node
+            NEW
           </Button>
         </div>
       </div>
