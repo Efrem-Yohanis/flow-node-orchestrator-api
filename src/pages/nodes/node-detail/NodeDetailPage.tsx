@@ -51,7 +51,9 @@ export function NodeDetailPage() {
           required: false, // Default value since not in API
           last_updated_by: null,
           last_updated_at: nodeData.last_updated_at,
-          is_active: param.is_active
+          is_active: param.is_active,
+          created_at: nodeData.last_updated_at || new Date().toISOString(),
+          created_by: null
         }));
         setNodeParameters(mappedParameters);
         

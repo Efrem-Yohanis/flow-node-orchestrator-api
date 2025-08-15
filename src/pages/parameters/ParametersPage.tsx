@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Download, Upload, Settings, Trash2, Eye, Edit, Grid2X2, List, Copy, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,15 +19,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useParameters, parameterService } from "@/services/parameterService";
+import { useParametersWithMetadata, parameterService } from "@/services/parameterService";
 import { useToast } from "@/hooks/use-toast";
+import { useSection } from "@/contexts/SectionContext";
 
 export function ParametersPage() {
   const navigate = useNavigate();
-  const { data: parameters, loading, error, refetch } = useParameters();
+  const { data: parametersResponse, loading, error, refetch } = useParametersWithMetadata();
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const { toast } = useToast();
+  const { setCurrentSection, setStatusCounts } = useSection();
+
+  // Extract parameters array from response
+  const parameters = parametersResponse.results || [];
+
+  // Update section context when data changes
+  useEffect(() => {
+    setCurrentSection("Parameters");
+    setStatusCounts({
+      total: parametersResponse.total,
+      deployed: parametersResponse.published,
+      drafted: parametersResponse.draft_count
+    });
+  }, [parametersResponse, setCurrentSection, setStatusCounts]);
 
   const filteredParameters = (Array.isArray(parameters) ? parameters : []).filter(param =>
     param.key.toLowerCase().includes(searchTerm.toLowerCase())
