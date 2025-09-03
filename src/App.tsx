@@ -74,6 +74,9 @@ const App = () => (
               <Route path="/reports/nodes" element={<NodeReportPage />} />
               <Route path="/alerts/flows" element={<FlowAlertPage />} />
               <Route path="/alerts/nodes" element={<NodeAlertPage />} />
+              <Route path="/mediations/convergent" element={<FlowsPage />} />
+              <Route path="/mediations/ncc" element={<FlowsPage />} />
+              <Route path="/mediations/charging-gateway" element={<FlowsPage />} />
               <Route path="/devtool" element={<DevToolPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

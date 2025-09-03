@@ -9,7 +9,11 @@ import {
   FileText,
   Bell,
   BarChart3,
-  Wrench
+  Wrench,
+  Layers,
+  ArrowLeftRight,
+  Zap,
+  CreditCard
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useSection } from "@/contexts/SectionContext";
@@ -43,6 +47,12 @@ const alertItems = [
 const reportItems = [
   { title: "Flow Report", url: "/reports/flows", icon: FileText },
   { title: "Node Report", url: "/reports/nodes", icon: BarChart3 },
+];
+
+const mediationItems = [
+  { title: "Convergent", url: "/mediations/convergent", icon: ArrowLeftRight },
+  { title: "NCC", url: "/mediations/ncc", icon: Zap },
+  { title: "Charging Gateway", url: "/mediations/charging-gateway", icon: CreditCard },
 ];
 
 const devToolItems = [
@@ -177,6 +187,33 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {reportItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to={item.url} 
+                      className={getNavClasses(item.url)}
+                      onClick={() => handleSectionClick(item.title)}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        {/* Mediation Group */}
+        <SidebarGroup>
+          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+            Mediation
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mediationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink 
