@@ -1,11 +1,13 @@
 // src/FlowsPage.tsx
 import { useEffect, useState } from "react";
-import { Plus, Upload, Download, Trash2, Eye, Grid, List, Copy } from "lucide-react";
+import { Plus, Upload, Download, Trash2, Eye, Grid, List, Copy, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoadingCard } from "@/components/ui/loading";
 import { useItems } from '../apis/ItemService'; // Using real API data
 import { deleteItem } from '../apis/ItemService'; // Using real delete function
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 import {
   Table,
@@ -17,6 +19,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +48,8 @@ export function FlowsPage() {
   const [showCloneDialog, setShowCloneDialog] = useState(false);
   const [flowToClone, setFlowToClone] = useState<any>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -51,6 +61,10 @@ export function FlowsPage() {
   const filteredFlows = flows.filter(flow =>
     flow.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredFlows.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedFlows = filteredFlows.slice(startIndex, startIndex + pageSize);
 
   const getFlowStatus = (flow: any) => {
     if (flow.is_running) return "running";
@@ -131,13 +145,34 @@ const handleDelete = async (flowId: string) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
+          <Select
+            value={pageSize.toString()}
+            onValueChange={(value) => {
+              setPageSize(Number(value));
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">5</SelectItem>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="15">15</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+            </SelectContent>
+          </Select>
           <Input
-            placeholder="Search flows..."
+            placeholder="🔍 Search flows..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-96"
           />
         </div>
+        
         <div className="flex items-center space-x-2">
           <div className="flex border border-border rounded-md">
             <Button
@@ -157,14 +192,6 @@ const handleDelete = async (flowId: string) => {
               <Grid className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm">
-            <Upload className="h-4 w-4 mr-2" />
-            Import Flow
-          </Button>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Flow
-          </Button>
         </div>
       </div>
 
@@ -182,11 +209,14 @@ const handleDelete = async (flowId: string) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredFlows.map((flow) => (
+              {paginatedFlows.map((flow) => (
                 <TableRow key={flow.id}>
                   <TableCell className="font-medium">{flow.name}</TableCell>
                   <TableCell>
-                    <Badge variant={getStatusBadgeVariant(getFlowStatus(flow))}>
+                    <Badge 
+                      variant={getStatusBadgeVariant(getFlowStatus(flow))}
+                      className="font-medium"
+                    >
                       {getStatusDisplay(getFlowStatus(flow))}
                     </Badge>
                   </TableCell>
@@ -204,41 +234,6 @@ const handleDelete = async (flowId: string) => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleExport(flow)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleClone(flow)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Flow</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{flow.name}"? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(flow.id)}>
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -247,72 +242,54 @@ const handleDelete = async (flowId: string) => {
           </Table>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredFlows.map((flow) => (
-            <Card key={flow.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">{flow.name}</CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => navigate(`/flows/${flow.id}`)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleExport(flow)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleClone(flow)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Flow</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{flow.name}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(flow.id)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">{flow.description}</p>
-               
-                <div className="flex items-center gap-2">
-                  <Badge variant={getStatusBadgeVariant(getFlowStatus(flow))}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {paginatedFlows.map((flow) => (
+            <Card key={flow.id} className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-foreground text-sm flex items-center justify-between">
+                  {flow.name}
+                  <Badge 
+                    variant={getStatusBadgeVariant(getFlowStatus(flow))}
+                    className="font-medium"
+                  >
                     {getStatusDisplay(getFlowStatus(flow))}
                   </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    v{flow.version}
-                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Created:</span> {new Date(flow.created_at).toLocaleDateString()}
+                  </div>
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">By:</span> {flow.created_by}
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>Created: {new Date(flow.created_at).toLocaleDateString()}</p>
-                  <p>Created by: {flow.created_by}</p>
+                
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-medium">Version:</span> {flow.version}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-medium">Description:</span> {flow.description || "No description available"}
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t border-border flex justify-between items-center">
+                  <div className="text-xs font-medium text-foreground">Actions:</div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-background border border-border shadow-lg z-50">
+                      <DropdownMenuItem onClick={() => navigate(`/flows/${flow.id}`)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardContent>
             </Card>
@@ -320,7 +297,53 @@ const handleDelete = async (flowId: string) => {
         </div>
       )}
 
-      <CreateFlowDialog 
+      {filteredFlows.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {startIndex + 1} to {Math.min(startIndex + pageSize, filteredFlows.length)} of {filteredFlows.length} flows
+          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage > 1) setCurrentPage(currentPage - 1);
+                  }}
+                  className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage(page);
+                    }}
+                    isActive={currentPage === page}
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                  }}
+                  className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+
+      <CreateFlowDialog
         open={showCreateDialog} 
         onOpenChange={setShowCreateDialog}
       />

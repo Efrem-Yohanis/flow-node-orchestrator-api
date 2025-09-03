@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Download, Upload, Settings, Trash2, Eye, Edit, Grid2X2, List, Copy, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import {
   Table,
   TableBody,
@@ -23,6 +25,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useParametersWithMetadata, parameterService } from "@/services/parameterService";
 import { useToast } from "@/hooks/use-toast";
 import { useSection } from "@/contexts/SectionContext";
+import { LoadingCard } from "@/components/ui/loading";
 
 export function ParametersPage() {
   const navigate = useNavigate();
@@ -31,6 +34,8 @@ export function ParametersPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const { toast } = useToast();
   const { setCurrentSection, setStatusCounts } = useSection();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   
   // Import preview modal state
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -54,8 +59,12 @@ export function ParametersPage() {
     param.key.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filteredParameters.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedParameters = filteredParameters.slice(startIndex, startIndex + pageSize);
+
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Loading parameters...</div>;
+    return <LoadingCard text="Loading parameters..." />;
   }
 
   if (error) {
@@ -198,55 +207,104 @@ export function ParametersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
+          <Select
+            value={pageSize.toString()}
+            onValueChange={(value) => {
+              setPageSize(Number(value));
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">5</SelectItem>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="15">15</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+            </SelectContent>
+          </Select>
           <Input
-            placeholder="Search parameters..."
+            placeholder="🔍 Search parameters..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-96"
           />
         </div>
         
         <div className="flex items-center space-x-2">
           <div className="flex border border-border rounded-md">
             <Button
-              onClick={() => setViewMode('grid')}
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              className="rounded-r-none"
-            >
-              <Grid2X2 className="h-4 w-4" />
-            </Button>
-            <Button
               onClick={() => setViewMode('list')}
               variant={viewMode === 'list' ? 'default' : 'ghost'}
               size="sm"
-              className="rounded-l-none"
+              className="rounded-r-none"
             >
               <List className="h-4 w-4" />
             </Button>
+            <Button
+              onClick={() => setViewMode('grid')}
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-l-none"
+            >
+              <Grid2X2 className="h-4 w-4" />
+            </Button>
           </div>
-          <Button variant="outline" size="sm" asChild>
-            <label htmlFor="import-file" className="cursor-pointer">
-              <Upload className="h-4 w-4" />
-            </label>
-          </Button>
-          <input
-            id="import-file"
-            type="file"
-            accept=".json"
-            onChange={handleImport}
-            className="hidden"
-          />
-          <Button onClick={() => navigate("/parameters/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            NEW
-          </Button>
         </div>
       </div>
 
-      {viewMode === 'grid' ? (
+      {viewMode === 'list' ? (
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Key</TableHead>
+                <TableHead>Default Value</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedParameters.map((param) => (
+                <TableRow key={param.id}>
+                  <TableCell>
+                    <Button 
+                      variant="link" 
+                      className="h-auto p-0 font-medium"
+                      onClick={() => navigate(`/parameters/${param.id}`)}
+                    >
+                      {param.key}
+                    </Button>
+                  </TableCell>
+                  <TableCell>{param.default_value}</TableCell>
+                  <TableCell>
+                    <Badge variant={param.is_active ? "default" : "secondary"}>
+                      {param.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/parameters/${param.id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredParameters.map((param) => (
+          {paginatedParameters.map((param) => (
             <Card key={param.id} className="bg-card border-border">
               <CardHeader className="pb-2">
                 <CardTitle className="text-foreground text-sm flex items-center justify-between">
@@ -277,21 +335,6 @@ export function ParametersPage() {
                         <Eye className="h-4 w-4 mr-2" />
                         View
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleExport(param.id)}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Export
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleClone(param)}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Clone
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDelete(param.id)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -299,71 +342,51 @@ export function ParametersPage() {
             </Card>
           ))}
         </div>
-      ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Key</TableHead>
-                <TableHead>Default Value</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredParameters.map((param) => (
-                <TableRow key={param.id}>
-                  <TableCell>
-                    <Button 
-                      variant="link" 
-                      className="h-auto p-0 font-medium"
-                      onClick={() => navigate(`/parameters/${param.id}`)}
-                    >
-                      {param.key}
-                    </Button>
-                  </TableCell>
-                  <TableCell>{param.default_value}</TableCell>
-                  <TableCell>
-                    <Badge variant={param.is_active ? "default" : "secondary"}>
-                      {param.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => navigate(`/parameters/${param.id}`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleExport(param.id)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleClone(param)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleDelete(param.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+      )}
+
+      {filteredParameters.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {startIndex + 1} to {Math.min(startIndex + pageSize, filteredParameters.length)} of {filteredParameters.length} parameters
+          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage > 1) setCurrentPage(currentPage - 1);
+                  }}
+                  className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage(page);
+                    }}
+                    isActive={currentPage === page}
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
               ))}
-            </TableBody>
-          </Table>
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                  }}
+                  className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
       
