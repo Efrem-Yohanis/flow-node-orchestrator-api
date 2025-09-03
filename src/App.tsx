@@ -32,6 +32,9 @@ import { NodeReportPage } from "@/pages/reports/NodeReportPage";
 import { FlowAlertPage } from "@/pages/alerts/FlowAlertPage";
 import { NodeAlertPage } from "@/pages/alerts/NodeAlertPage";
 import { DevToolPage } from "@/pages/DevToolPage";
+import { ConvergentFlowsPage } from "@/pages/mediations/ConvergentFlowsPage";
+import { NCCFlowsPage } from "@/pages/mediations/NCCFlowsPage";
+import { ChargingGatewayFlowsPage } from "@/pages/mediations/ChargingGatewayFlowsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,9 +77,9 @@ const App = () => (
               <Route path="/reports/nodes" element={<NodeReportPage />} />
               <Route path="/alerts/flows" element={<FlowAlertPage />} />
               <Route path="/alerts/nodes" element={<NodeAlertPage />} />
-              <Route path="/mediations/convergent" element={<FlowsPage />} />
-              <Route path="/mediations/ncc" element={<FlowsPage />} />
-              <Route path="/mediations/charging-gateway" element={<FlowsPage />} />
+              <Route path="/mediations/convergent" element={<ConvergentFlowsPage />} />
+              <Route path="/mediations/ncc" element={<NCCFlowsPage />} />
+              <Route path="/mediations/charging-gateway" element={<ChargingGatewayFlowsPage />} />
               <Route path="/devtool" element={<DevToolPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
