@@ -52,16 +52,6 @@ export function FlowHeader({
 
   return (
     <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center space-x-4">
-        <h1 className="text-4xl font-bold">{flow.name}</h1>
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
-            v{flow.version || 1}
-          </div>
-          {getStatusBadge()}
-        </div>
-      </div>
-      
       <div className="flex items-center space-x-2">
         {/* Dynamic Edit/Create New Version Button */}
         {isEditable ? (
@@ -143,6 +133,15 @@ export function FlowHeader({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+      
+      {/* Right: Flow info */}
+      <div className="flex items-center space-x-3">
+        <h1 className="text-2xl font-bold">{flow.name}</h1>
+        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
+          v{flow.version || 1}
+        </div>
+        {getStatusBadge()}
       </div>
     </div>
   );
