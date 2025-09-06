@@ -69,20 +69,20 @@ export function FlowHeader({
             variant="outline"
             onClick={onEditVersion}
             disabled={isLoading}
-            size="default"
+            size="icon"
+            title="Edit Version"
           >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Version
+            <Edit className="h-4 w-4" />
           </Button>
         ) : (
           <Button 
             variant="outline"
             onClick={onCreateNewVersion}
             disabled={isLoading}
-            size="default"
+            size="icon"
+            title="Create New Version"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Version
+            <Plus className="h-4 w-4" />
           </Button>
         )}
         
@@ -91,18 +91,13 @@ export function FlowHeader({
           variant={isDeployed ? "destructive" : "default"}
           onClick={onToggleDeployment}
           disabled={isLoading}
-          size="default"
+          size="icon"
+          title={isDeployed ? "Undeploy" : "Deploy"}
         >
           {isDeployed ? (
-            <>
-              <Square className="h-4 w-4 mr-2" />
-              Undeploy
-            </>
+            <Square className="h-4 w-4" />
           ) : (
-            <>
-              <Play className="h-4 w-4 mr-2" />
-              Deploy
-            </>
+            <Play className="h-4 w-4" />
           )}
         </Button>
         
@@ -111,10 +106,10 @@ export function FlowHeader({
           variant="outline" 
           onClick={onShowVersionHistory}
           disabled={isLoading}
-          size="default"
+          size="icon"
+          title="Version History"
         >
-          <History className="h-4 w-4 mr-2" />
-          Version History
+          <History className="h-4 w-4" />
         </Button>
 
         {/* Three Dots Menu */}
