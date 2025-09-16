@@ -123,6 +123,9 @@ export function DevToolPage() {
               Status
             </TableHead>
             <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Type of Mediation
+            </TableHead>
+            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Created
             </TableHead>
             <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
@@ -133,7 +136,7 @@ export function DevToolPage() {
         <TableBody>
           {flows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                 <div className="flex flex-col items-center gap-2">
                   <Workflow className="h-8 w-8 text-muted-foreground/50" />
                   <span className="text-sm">No flows found</span>
@@ -161,6 +164,9 @@ export function DevToolPage() {
                   >
                     {flow.is_deployed ? "Deployed" : "Draft"}
                   </Badge>
+                </TableCell>
+                <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                  null
                 </TableCell>
                 <TableCell className="px-6 py-4 text-sm text-muted-foreground">
                   {new Date(flow.created_at).toLocaleDateString('en-US', {
