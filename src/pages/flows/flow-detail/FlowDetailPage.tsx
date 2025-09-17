@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoadingCard } from "@/components/ui/loading";
 import { FlowPipeline } from "@/components/FlowPipeline";
+import { UniformDetailHeader } from "@/components/UniformDetailHeader";
+import { UniformDetailBackButton } from "@/components/UniformDetailBackButton";
 import { 
   ArrowLeft,
   Play, 
@@ -185,144 +187,57 @@ export function FlowDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {flow.name}
-                </h1>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    v{flow.version}
-                  </Badge>
-                  <Badge 
-                    className={`text-xs font-medium ${
-                      flow.is_deployed 
-                        ? 'bg-success text-success-foreground' 
-                        : 'bg-warning text-warning-foreground'
-                    }`}
-                  >
-                    {flow.is_deployed ? 'Deployed' : 'Draft'}
-                  </Badge>
-                </div>
-              </div>
-            </div>
+    <div className="space-y-6 p-6">
+        {/* Uniform Header */}
+        <UniformDetailHeader
+          name={flow.name}
+          version={flow.version}
+          status={flow.is_running ? 'running' : flow.is_deployed ? 'deployed' : 'draft'}
+          backRoute="/devtool"
+          backTab="flows"
+          isEditable={!flow.is_deployed}
+          onEditVersion={() => navigate(`/flows/${id}/edit`)}
+          onCreateNewVersion={() => toast({ title: "Create New Version", description: "Creating new version..." })}
+          onToggleDeployment={() => {
+            setFlow(prev => ({ ...prev, is_deployed: !prev.is_deployed }));
+            toast({
+              title: flow.is_deployed ? "Flow Undeployed" : "Flow Deployed",
+              description: flow.is_deployed ? "Flow has been undeployed" : "Flow has been deployed successfully"
+            });
+          }}
+          onShowVersionHistory={() => toast({ title: "Version History", description: "Opening version history..." })}
+          onExportVersion={() => toast({ title: "Export Version", description: "Exporting version..." })}
+          onCloneVersion={() => toast({ title: "Clone Version", description: "Cloning version..." })}
+          onDeleteVersion={() => toast({ title: "Delete Version", description: "Deleting version..." })}
+          customActions={[
+            {
+              label: "Start Flow",
+              icon: Play,
+              onClick: handleRunFlow,
+              disabled: flow.is_running
+            },
+            {
+              label: "Stop Flow", 
+              icon: Pause,
+              onClick: handleStopFlow,
+              disabled: !flow.is_running
+            },
+            {
+              label: "Restart Flow",
+              icon: RotateCcw,
+              onClick: () => {
+                if (flow.is_running) {
+                  handleStopFlow();
+                  setTimeout(() => handleRunFlow(), 1000);
+                } else {
+                  handleRunFlow();
+                }
+              }
+            }
+          ]}
+        />
 
-            <div className="flex items-center gap-2">
-              {/* Edit/Create New Version Button */}
-              {flow.is_deployed ? (
-                <Button 
-                  variant="outline"
-                  size="icon"
-                  title="Create New Version"
-                  onClick={() => toast({ title: "Create New Version", description: "Creating new version..." })}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button 
-                  variant="outline"
-                  size="icon"
-                  title="Edit Version"
-                  onClick={() => navigate(`/flows/${id}/edit`)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              )}
-              
-              {/* Deploy/Undeploy Button */}
-              <Button 
-                variant={flow.is_deployed ? "destructive" : "default"}
-                size="icon"
-                title={flow.is_deployed ? "Undeploy" : "Deploy"}
-                onClick={() => {
-                  setFlow(prev => ({ ...prev, is_deployed: !prev.is_deployed }));
-                  toast({
-                    title: flow.is_deployed ? "Flow Undeployed" : "Flow Deployed",
-                    description: flow.is_deployed ? "Flow has been undeployed" : "Flow has been deployed successfully"
-                  });
-                }}
-              >
-                {flow.is_deployed ? (
-                  <Square className="h-4 w-4" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
-              </Button>
-              
-              {/* Version History Button */}
-              <Button 
-                variant="outline" 
-                size="icon"
-                title="Version History"
-                onClick={() => toast({ title: "Version History", description: "Opening version history..." })}
-              >
-                <History className="h-4 w-4" />
-              </Button>
-
-              {/* Three Dots Menu with Flow Controls */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    title="More Actions"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {!flow.is_running && (
-                    <DropdownMenuItem onClick={handleRunFlow}>
-                      <Play className="h-4 w-4 mr-2" />
-                      Start Flow
-                    </DropdownMenuItem>
-                  )}
-                  {flow.is_running && (
-                    <DropdownMenuItem onClick={handleStopFlow}>
-                      <Pause className="h-4 w-4 mr-2" />
-                      Stop Flow
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => {
-                    if (flow.is_running) {
-                      handleStopFlow();
-                      setTimeout(() => handleRunFlow(), 1000);
-                    } else {
-                      handleRunFlow();
-                    }
-                  }}>
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Restart Flow
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast({ title: "Export Version", description: "Exporting version..." })}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Version
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast({ title: "Clone Version", description: "Cloning version..." })}>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Clone Version
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => toast({ title: "Delete Version", description: "Deleting version..." })}
-                    disabled={flow.is_deployed}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Version
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-6 space-y-6">
+        <div className="space-y-6">
         {/* General Info Panel */}
         <Card>
           <CardHeader>
@@ -708,6 +623,11 @@ export function FlowDetailPage() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Back Button */}
+        <div className="flex justify-end pt-6">
+          <UniformDetailBackButton backRoute="/devtool" backTab="flows" />
+        </div>
       </div>
     </div>
   );
