@@ -246,13 +246,23 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
       
       if (!params.source || !params.target) return;
 
-      // Optimistically update UI first with smoothstep style
+      // Optimistically update UI first with bezier style
       const newEdge = {
         id: `temp-${Date.now()}`,
         source: params.source,
         target: params.target,
-        type: 'smoothstep',
+        type: 'bezier',
         animated: true,
+        style: {
+          stroke: 'hsl(var(--primary))',
+          strokeWidth: 3,
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: 'hsl(var(--primary))',
+          width: 20,
+          height: 20,
+        },
       };
       setEdges((eds) => [...eds, newEdge]);
       
@@ -279,8 +289,18 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
           e.id === newEdge.id ? { 
             ...e, 
             id: edge.id,
-            type: 'smoothstep',
+            type: 'bezier',
             animated: true,
+            style: {
+              stroke: 'hsl(var(--primary))',
+              strokeWidth: 3,
+            },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: 'hsl(var(--primary))',
+              width: 20,
+              height: 20,
+            },
           } : e
         ));
 
@@ -443,7 +463,7 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
           <div className="flex items-center space-x-4">
             <h1 className="text-4xl font-bold">{flowData?.name || `Flow ${flowId}`}</h1>
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
+              <div className="px-2 py-1 border border-border text-sm font-semibold">
                 v1
               </div>
               <Badge variant="secondary">Editing</Badge>
@@ -477,11 +497,7 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate(getBackRoute())}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
           </Button>
-          <p className="text-sm text-muted-foreground">
-            Flow Editor - Add, connect, and configure nodes
-          </p>
         </div>
       </div>
 
