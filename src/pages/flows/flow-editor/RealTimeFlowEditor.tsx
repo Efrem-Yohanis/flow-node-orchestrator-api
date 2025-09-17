@@ -18,7 +18,7 @@ import '@xyflow/react/dist/style.css';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Play, Square, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
@@ -370,41 +370,33 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
     }
   }, [flowNodeMap, setNodes, toast]);
 
-  // 🎯 REAL-TIME FUNCTIONALITY 4: Validate Flow
-  const handleValidateFlow = useCallback(async () => {
+  // 🎯 REAL-TIME FUNCTIONALITY 4: Save Flow
+  const handleSaveFlow = useCallback(async () => {
     setIsValidating(true);
-    setValidationErrors([]);
 
     try {
-      // 🚀 Real-time API call: Validate flow immediately
-      const validation = await flowService.validateFlow(flowId);
-      console.log('✅ Flow validation result:', validation);
-
-      if (validation.valid) {
-        toast({
-          title: "Flow Valid",
-          description: "Flow validation passed successfully.",
-        });
-      } else {
-        setValidationErrors(validation.errors || []);
-        toast({
-          title: "Flow Invalid",
-          description: `Found ${validation.errors?.length || 0} validation errors.`,
-          variant: "destructive"
-        });
-      }
+      // 🚀 Real-time API call: Save flow
+      await flowService.updateFlow(flowId, { 
+        name: flowData?.name,
+        description: flowData?.description 
+      });
+      
+      toast({
+        title: "Flow Saved",
+        description: "Flow has been saved successfully.",
+      });
 
     } catch (error) {
-      console.error('❌ Error validating flow:', error);
+      console.error('❌ Error saving flow:', error);
       toast({
-        title: "Validation Error",
-        description: "Failed to validate flow.",
+        title: "Save Error",
+        description: "Failed to save flow.",
         variant: "destructive"
       });
     } finally {
       setIsValidating(false);
     }
-  }, [flowId, toast]);
+  }, [flowId, flowData, toast]);
 
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
@@ -428,23 +420,33 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
     );
   }
 
+  // Helper to determine back navigation
+  const getBackRoute = () => {
+    const referrer = document.referrer;
+    const currentOrigin = window.location.origin;
+    
+    if (referrer.startsWith(currentOrigin)) {
+      const referrerPath = new URL(referrer).pathname;
+      if (referrerPath.includes('/devtool')) return '/devtool';
+      if (referrerPath.includes('/dashboard')) return '/dashboard';
+      if (referrerPath.includes('/mediations')) return '/mediations';
+    }
+    
+    return '/flows';
+  };
+
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="border-b bg-card p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/flows')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Flows
-            </Button>
-            <div>
-              <h1 className="text-xl font-semibold">
-                {flowData?.name || `Flow ${flowId}`}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Real-time flow editor
-              </p>
+      {/* Header - Matching Uniform Detail Page Style */}
+      <div className="border-b bg-card px-6 py-4">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-4xl font-bold">{flowData?.name || `Flow ${flowId}`}</h1>
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
+                v1
+              </div>
+              <Badge variant="secondary">Editing</Badge>
             </div>
           </div>
           
@@ -457,24 +459,29 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
             )}
             
             <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleValidateFlow}
+              size="sm" 
+              onClick={handleSaveFlow}
               disabled={isValidating}
+              className="gap-2"
             >
               {isValidating ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2" />
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground" />
               ) : (
-                <CheckCircle className="h-4 w-4 mr-2" />
+                <Save className="h-4 w-4" />
               )}
-              Validate Flow
-            </Button>
-            
-            <Button size="sm" className="gap-2" onClick={handleValidateFlow}>
-              <CheckCircle className="h-4 w-4" />
               Save
             </Button>
           </div>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate(getBackRoute())}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Flow Editor - Add, connect, and configure nodes
+          </p>
         </div>
       </div>
 
