@@ -22,7 +22,9 @@ import {
   List,
   Eye,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  RefreshCcw,
+  ExternalLink
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +38,7 @@ import { LoadingCard } from "@/components/ui/loading";
 import { useSection } from "@/contexts/SectionContext";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import axios from "axios";
+import { gitService, type GitInfo } from "@/services/gitService";
 
 export function DevToolPage() {
   const navigate = useNavigate();
@@ -935,9 +938,77 @@ export function DevToolPage() {
     }
   };
 
+  // Git info state and handlers
+  const [gitInfo, setGitInfo] = useState<GitInfo | null>(null);
+  const [gitLoading, setGitLoading] = useState(false);
+
+  const fetchLatestGit = async () => {
+    try {
+      setGitLoading(true);
+      const info = await gitService.getLatestCommit();
+      setGitInfo(info);
+    } catch (error) {
+      toast({
+        title: "Git fetch failed",
+        description: "Could not retrieve latest commit.",
+        variant: "destructive",
+      });
+    } finally {
+      setGitLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchLatestGit();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="w-full p-6 space-y-8">
+        {/* Git Info */}
+        <div className="grid gap-4">
+          <Card className="border border-border">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <GitFork className="h-4 w-4" />
+                <span>Latest Git Commit</span>
+              </CardTitle>
+              <Button variant="outline" size="sm" onClick={fetchLatestGit} disabled={gitLoading} className="h-8">
+                <RefreshCcw className={`h-4 w-4 mr-2 ${gitLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {gitLoading ? (
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
+                  <span className="text-sm">Fetching latest commit...</span>
+                </div>
+              ) : gitInfo ? (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-foreground truncate" title={gitInfo.lastCommit.message}>
+                    {gitInfo.lastCommit.message}
+                  </div>
+                  <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                    <code className="px-1.5 py-0.5 rounded bg-muted text-foreground">{gitInfo.lastCommit.hash}</code>
+                    <span>by {gitInfo.lastCommit.author}</span>
+                    <span>on {new Date(gitInfo.lastCommit.date).toLocaleString()}</span>
+                    <Badge variant="outline" className="text-xs border-0 bg-muted text-foreground">{gitInfo.lastCommit.branch}</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-2">
+                    <a href={gitInfo.repository.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> {gitInfo.repository.name}
+                    </a>
+                    <span>• {gitInfo.status === 'clean' ? 'Working tree clean' : 'Uncommitted changes present'}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">No git info available.</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Professional Tabs */}
         <div className="bg-card border border-border rounded-lg shadow-sm">
           <Tabs defaultValue="flows" className="w-full">
