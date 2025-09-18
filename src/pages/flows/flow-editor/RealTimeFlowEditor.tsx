@@ -18,12 +18,13 @@ import '@xyflow/react/dist/style.css';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, Workflow, Network, GitFork } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 import { CollapsibleNodePalette } from './CollapsibleNodePalette';
 import { EnhancedFlowNode } from './EnhancedFlowNode';
+import { PropertiesPanel } from './PropertiesPanel';
 import { flowService, useFlow } from '@/services/flowService';
 import { nodeService } from '@/services/nodeService';
 
@@ -456,89 +457,171 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header - Matching Uniform Detail Page Style */}
-      <div className="border-b bg-card px-6 py-4">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-4xl font-bold">{flowData?.name || `Flow ${flowId}`}</h1>
-            <div className="flex items-center space-x-2">
-              <div className="px-2 py-1 border border-border text-sm font-semibold">
-                v1
+    <div className="h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Professional Header */}
+      <div className="bg-card/95 backdrop-blur-sm border-b border-border/60 shadow-sm">
+        <div className="px-8 py-6">
+          {/* Top Section */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center shadow-lg">
+                  <Workflow className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                    {flowData?.name || `Flow ${flowId}`}
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Professional Flow Builder • Real-time collaboration
+                  </p>
+                </div>
               </div>
-              <Badge variant="secondary">Editing</Badge>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {validationErrors.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm font-medium text-destructive">
+                    {validationErrors.length} error{validationErrors.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
+              
+              <Button 
+                onClick={handleSaveFlow}
+                disabled={isValidating}
+                className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 shadow-lg hover:shadow-xl transition-all duration-200 gap-2 font-medium"
+              >
+                {isValidating ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {isValidating ? 'Saving...' : 'Save Changes'}
+              </Button>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            {validationErrors.length > 0 && (
-              <Badge variant="destructive" className="gap-1">
-                <AlertCircle className="h-3 w-3" />
-                {validationErrors.length} errors
-              </Badge>
-            )}
+          {/* Status Bar */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <div className="px-3 py-1.5 bg-muted border border-border rounded-md">
+                  <span className="text-sm font-semibold text-foreground">v1.0</span>
+                </div>
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-medium">
+                  Editing Mode
+                </Badge>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                  Auto-save enabled
+                </div>
+              </div>
+            </div>
             
-            <Button 
-              size="sm" 
-              onClick={handleSaveFlow}
-              disabled={isValidating}
-              className="gap-2"
-            >
-              {isValidating ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Save
-            </Button>
+            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Network className="h-4 w-4" />
+                <span>{nodes.length} nodes</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <GitFork className="h-4 w-4" />
+                <span>{edges.length} connections</span>
+              </div>
+              <div className="w-px h-4 bg-border"></div>
+              <span>Last saved: {new Date().toLocaleTimeString()}</span>
+            </div>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex">
-        {/* Collapsible Node Palette */}
-        <CollapsibleNodePalette onAddNode={() => {}} />
-        
-        {/* Flow Canvas */}
-        <div className="flex-1">
-          <div 
-            ref={reactFlowWrapper}
-            className="w-full h-full"
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-          >
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={onNodeClick}
-              onPaneClick={onPaneClick}
-              nodeTypes={nodeTypes}
-              className="bg-background"
-              fitView
-              fitViewOptions={{ padding: 0.2 }}
-            >
-              <Controls className="bg-card border-border" />
-              <MiniMap 
-                className="bg-card border-border" 
-                nodeColor="#8b5cf6"
-                maskColor="rgba(0, 0, 0, 0.1)"
+      {/* Professional Main Content */}
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* Left Sidebar - Node Palette */}
+          <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+            <div className="h-full bg-card/50 backdrop-blur-sm border-r border-border/60">
+              <CollapsibleNodePalette onAddNode={() => {}} />
+            </div>
+          </ResizablePanel>
+          
+          <ResizableHandle className="w-1.5 bg-border/60 hover:bg-border transition-colors" />
+          
+          {/* Center - Canvas */}
+          <ResizablePanel defaultSize={60} minSize={40}>
+            <div className="h-full relative">
+              {/* Canvas Toolbar */}
+              <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
+                <div className="bg-card/95 backdrop-blur-sm border border-border/60 rounded-lg shadow-lg px-3 py-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-primary rounded-full"></div>
+                      <span className="font-medium">Canvas</span>
+                    </div>
+                    <div className="w-px h-4 bg-border/60"></div>
+                    <span className="text-muted-foreground">Drag nodes to build your flow</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div 
+                ref={reactFlowWrapper}
+                className="w-full h-full"
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+              >
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  onConnect={onConnect}
+                  onNodeClick={onNodeClick}
+                  onPaneClick={onPaneClick}
+                  nodeTypes={nodeTypes}
+                  className="bg-gradient-to-br from-background/50 to-muted/30"
+                  fitView
+                  fitViewOptions={{ padding: 0.2 }}
+                >
+                  <Controls className="bg-card/95 backdrop-blur-sm border-border/60 shadow-lg [&>button]:bg-transparent [&>button]:border-border/60 [&>button]:hover:bg-muted/50" />
+                  <MiniMap 
+                    className="bg-card/95 backdrop-blur-sm border-border/60 shadow-lg rounded-lg overflow-hidden" 
+                    nodeColor="hsl(var(--primary))"
+                    maskColor="rgba(0, 0, 0, 0.05)"
+                  />
+                  <Background 
+                    variant={BackgroundVariant.Dots} 
+                    gap={24} 
+                    size={1.2} 
+                    className="opacity-40" 
+                    color="hsl(var(--border))"
+                  />
+                </ReactFlow>
+              </div>
+            </div>
+          </ResizablePanel>
+          
+          <ResizableHandle className="w-1.5 bg-border/60 hover:bg-border transition-colors" />
+          
+          {/* Right Sidebar - Properties Panel */}
+          <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+            <div className="h-full bg-card/50 backdrop-blur-sm border-l border-border/60">
+              <PropertiesPanel 
+                selectedNode={selectedNode}
+                onUpdateNode={(nodeId, data) => {
+                  setNodes(nds => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n));
+                }}
+                onDeleteNode={(nodeId) => {
+                  setNodes(nds => nds.filter(n => n.id !== nodeId));
+                  setEdges(eds => eds.filter(e => e.source !== nodeId && e.target !== nodeId));
+                }}
+                flowId={flowId}
               />
-              <Background 
-                variant={BackgroundVariant.Dots} 
-                gap={20} 
-                size={1} 
-                className="opacity-30" 
-              />
-            </ReactFlow>
-          </div>
-        </div>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );
