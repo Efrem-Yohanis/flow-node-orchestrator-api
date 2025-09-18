@@ -18,7 +18,7 @@ import '@xyflow/react/dist/style.css';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save, AlertCircle, Workflow, Network, GitFork } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, Workflow, Network, GitFork, Database, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
@@ -68,6 +68,10 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  
+  // Panel collapse states
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
   
   // Real-time state
   const [flowNodeMap, setFlowNodeMap] = useState<Map<string, string>>(new Map()); // Canvas node ID -> FlowNode ID
@@ -538,19 +542,52 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
       </div>
 
       {/* Professional Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
+      <div className="flex-1 overflow-hidden relative">
+        {/* Mobile Panel Toggle Buttons */}
+        <div className="lg:hidden absolute top-4 left-4 z-30 flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
+            className="bg-card/95 backdrop-blur-sm border-border/60 shadow-lg"
+          >
+            <Database className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline" 
+            size="sm"
+            onClick={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
+            className="bg-card/95 backdrop-blur-sm border-border/60 shadow-lg"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Overlay for mobile panels */}
+        {(!isLeftPanelCollapsed || !isRightPanelCollapsed) && (
+          <div 
+            className="lg:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-10"
+            onClick={() => {
+              setIsLeftPanelCollapsed(true);
+              setIsRightPanelCollapsed(true);
+            }}
+          />
+        )}
+
+        <div className="h-full flex">
           {/* Left Sidebar - Node Palette */}
-          <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
-            <div className="h-full bg-card/50 backdrop-blur-sm border-r border-border/60">
+          <div className={`transition-all duration-300 ${isLeftPanelCollapsed ? 'w-0 lg:w-12' : 'w-80'} lg:relative absolute lg:translate-x-0 ${isLeftPanelCollapsed ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'} z-20 lg:z-0 h-full`}>
+            <div className="h-full bg-card/95 backdrop-blur-sm border-r border-border/60 shadow-lg lg:shadow-none">
               <CollapsibleNodePalette onAddNode={() => {}} />
             </div>
-          </ResizablePanel>
-          
-          <ResizableHandle className="w-1.5 bg-border/60 hover:bg-border transition-colors" />
+          </div>
           
           {/* Center - Canvas */}
-          <ResizablePanel defaultSize={60} minSize={40}>
+          <div className={`flex-1 transition-all duration-300 ${
+            (!isLeftPanelCollapsed && !isRightPanelCollapsed) ? 'lg:mx-0 mx-80' : 
+            (!isLeftPanelCollapsed) ? 'lg:ml-0 ml-80 lg:mr-0 mr-0' :
+            (!isRightPanelCollapsed) ? 'lg:ml-0 ml-0 lg:mr-0 mr-80' : 'mx-0'
+          } lg:mx-0`}>
             <div className="h-full relative">
               {/* Canvas Toolbar */}
               <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
@@ -561,7 +598,7 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
                       <span className="font-medium">Canvas</span>
                     </div>
                     <div className="w-px h-4 bg-border/60"></div>
-                    <span className="text-muted-foreground">Drag nodes to build your flow</span>
+                    <span className="text-muted-foreground hidden sm:inline">Drag nodes to build your flow</span>
                   </div>
                 </div>
               </div>
@@ -601,12 +638,10 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
                 </ReactFlow>
               </div>
             </div>
-          </ResizablePanel>
-          
-          <ResizableHandle className="w-1.5 bg-border/60 hover:bg-border transition-colors" />
+          </div>
           
           {/* Right Sidebar - Properties Panel */}
-          <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+          <div className={`transition-all duration-300 ${isRightPanelCollapsed ? 'w-12' : 'w-80'} lg:relative absolute right-0 lg:translate-x-0 ${isRightPanelCollapsed ? '' : 'translate-x-0'} z-20 lg:z-0`}>
             <div className="h-full bg-card/50 backdrop-blur-sm border-l border-border/60">
               <PropertiesPanel 
                 selectedNode={selectedNode}
@@ -618,10 +653,12 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
                   setEdges(eds => eds.filter(e => e.source !== nodeId && e.target !== nodeId));
                 }}
                 flowId={flowId}
+                isCollapsed={isRightPanelCollapsed}
+                onToggleCollapse={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
               />
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          </div>
+        </div>
       </div>
     </div>
   );
