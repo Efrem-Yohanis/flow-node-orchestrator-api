@@ -3,20 +3,44 @@ import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { CreateCampaignDialog } from '@/components/campaigns/CreateCampaignDialog';
 import { mockCampaigns } from '@/data/mockData';
-import { Megaphone, Send, Eye, Gift, Plus } from 'lucide-react';
-import { MetricCard } from '@/components/dashboard/MetricCard';
+import { Megaphone, Plus, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
+type CampaignStatus = 'active' | 'scheduled' | 'completed' | 'draft';
+type CampaignType = 'email' | 'sms' | 'push' | 'in-app';
+
+const statusFilters: { value: CampaignStatus | 'all'; label: string }[] = [
+  { value: 'all', label: 'All Campaigns' },
+  { value: 'active', label: 'Active' },
+  { value: 'scheduled', label: 'Scheduled' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'draft', label: 'Draft' },
+];
+
+const typeFilters: { value: CampaignType | 'all'; label: string }[] = [
+  { value: 'all', label: 'All Types' },
+  { value: 'email', label: 'Email' },
+  { value: 'sms', label: 'SMS' },
+  { value: 'push', label: 'Push' },
+  { value: 'in-app', label: 'In-App' },
+];
+
 const Advertisements = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<CampaignStatus | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<CampaignType | 'all'>('all');
   const navigate = useNavigate();
 
-  const activeCampaigns = mockCampaigns.filter((c) => c.status === 'active').length;
-  const totalSent = mockCampaigns.reduce((acc, c) => acc + c.sentCount, 0);
-  const avgOpenRate = mockCampaigns.filter(c => c.sentCount > 0).reduce((acc, c) => acc + c.openRate, 0) / mockCampaigns.filter(c => c.sentCount > 0).length;
-  const avgRedemption = mockCampaigns.filter(c => c.sentCount > 0).reduce((acc, c) => acc + c.redemptionRate, 0) / mockCampaigns.filter(c => c.sentCount > 0).length;
+  const filteredCampaigns = mockCampaigns.filter((campaign) => {
+    const matchesSearch = campaign.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
+    const matchesType = typeFilter === 'all' || campaign.type === typeFilter;
+    return matchesSearch && matchesStatus && matchesType;
+  });
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -37,44 +61,64 @@ const Advertisements = () => {
             <h1 className="text-3xl font-bold text-foreground">Advertisement Management</h1>
             <p className="text-muted-foreground mt-1">Targeted marketing and customer engagement</p>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)} className="gradient-primary text-primary-foreground gap-2">
-            <Plus className="h-4 w-4" />
-            New Campaign
-          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">{filteredCampaigns.length} campaigns</span>
+            <Button onClick={() => setCreateDialogOpen(true)} className="gradient-primary text-primary-foreground gap-2">
+              <Plus className="h-4 w-4" />
+              New Campaign
+            </Button>
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-xl border border-border bg-card p-1 shadow-sm">
-            <MetricCard
-              title="Active Campaigns"
-              value={activeCampaigns}
-              icon={Megaphone}
-              variant="delivered"
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search campaigns..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-card border-border"
             />
           </div>
-          <div className="rounded-xl border border-border bg-card p-1 shadow-sm">
-            <MetricCard
-              title="Total Sent"
-              value={totalSent.toLocaleString()}
-              icon={Send}
-              trend={{ value: 24, isPositive: true }}
-            />
+          
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+            {statusFilters.map((filter) => (
+              <Button
+                key={filter.value}
+                variant={statusFilter === filter.value ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter(filter.value)}
+                className={cn(
+                  'whitespace-nowrap',
+                  statusFilter === filter.value && 'gradient-primary text-primary-foreground'
+                )}
+              >
+                {filter.label}
+              </Button>
+            ))}
           </div>
-          <div className="rounded-xl border border-border bg-card p-1 shadow-sm">
-            <MetricCard
-              title="Avg Open Rate"
-              value={`${avgOpenRate.toFixed(1)}%`}
-              icon={Eye}
-              variant="pending"
-            />
-          </div>
-          <div className="rounded-xl border border-border bg-card p-1 shadow-sm">
-            <MetricCard
-              title="Avg Redemption"
-              value={`${avgRedemption.toFixed(1)}%`}
-              icon={Gift}
-            />
+        </div>
+
+        {/* Type Filters */}
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Type:</span>
+          <div className="flex gap-2">
+            {typeFilters.map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setTypeFilter(filter.value)}
+                className={cn(
+                  'px-3 py-1 rounded-full text-xs font-medium transition-colors capitalize',
+                  typeFilter === filter.value
+                    ? 'bg-primary/20 text-primary'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                )}
+              >
+                {filter.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -84,7 +128,7 @@ const Advertisements = () => {
             <h2 className="text-lg font-semibold text-foreground">All Campaigns</h2>
           </div>
           <div className="divide-y divide-border">
-            {mockCampaigns.map((campaign) => (
+            {filteredCampaigns.map((campaign) => (
               <div
                 key={campaign.id}
                 onClick={() => navigate(`/advertisements/${campaign.id}`)}
@@ -112,6 +156,12 @@ const Advertisements = () => {
             ))}
           </div>
         </div>
+
+        {filteredCampaigns.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No campaigns found matching your filters</p>
+          </div>
+        )}
 
         {/* Create Campaign Dialog */}
         <CreateCampaignDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
