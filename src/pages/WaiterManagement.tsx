@@ -4,19 +4,32 @@ import { StaffCard } from '@/components/staff/StaffCard';
 import { StaffList } from '@/components/staff/StaffList';
 import { CreateStaffDialog } from '@/components/staff/CreateStaffDialog';
 import { mockWaiters } from '@/data/mockData';
-import { LayoutGrid, List, Plus, Search } from 'lucide-react';
+import { LayoutGrid, List, Plus, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+
+type StaffStatus = 'available' | 'busy' | 'break' | 'offline';
+
+const statusFilters: { value: StaffStatus | 'all'; label: string }[] = [
+  { value: 'all', label: 'All Waiters' },
+  { value: 'available', label: 'Available' },
+  { value: 'busy', label: 'Busy' },
+  { value: 'break', label: 'On Break' },
+  { value: 'offline', label: 'Offline' },
+];
 
 const WaiterManagement = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StaffStatus | 'all'>('all');
 
-  const filteredWaiters = mockWaiters.filter((waiter) =>
-    waiter.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredWaiters = mockWaiters.filter((waiter) => {
+    const matchesSearch = waiter.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || waiter.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <MainLayout>
@@ -28,6 +41,7 @@ const WaiterManagement = () => {
             <p className="text-muted-foreground mt-1">Monitor waitstaff performance and assignments</p>
           </div>
           <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">{filteredWaiters.length} waiters</span>
             <div className="flex items-center border border-border rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
@@ -55,15 +69,34 @@ const WaiterManagement = () => {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search waiters..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search waiters..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-card border-border"
+            />
+          </div>
+          
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+            {statusFilters.map((filter) => (
+              <Button
+                key={filter.value}
+                variant={statusFilter === filter.value ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter(filter.value)}
+                className={cn(
+                  'whitespace-nowrap',
+                  statusFilter === filter.value && 'gradient-primary text-primary-foreground'
+                )}
+              >
+                {filter.label}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* Waiter View */}
@@ -79,6 +112,12 @@ const WaiterManagement = () => {
             <StaffList staff={filteredWaiters} type="waiter" />
           )}
         </div>
+
+        {filteredWaiters.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No waiters found matching your filters</p>
+          </div>
+        )}
 
         {/* Create Waiter Dialog */}
         <CreateStaffDialog
