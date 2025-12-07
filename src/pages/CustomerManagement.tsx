@@ -20,7 +20,7 @@ const segmentFilters = [
 const CustomerManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [segmentFilter, setSegmentFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [dialogOpen, setDialogOpen] = useState(false);
   const filteredCustomers = mockCustomers.filter((customer) => {
     const matchesSearch =

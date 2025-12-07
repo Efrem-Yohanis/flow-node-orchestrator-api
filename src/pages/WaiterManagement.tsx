@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const WaiterManagement = () => {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const totalOrders = mockWaiters.reduce((acc, w) => acc + w.ordersServedToday, 0);
