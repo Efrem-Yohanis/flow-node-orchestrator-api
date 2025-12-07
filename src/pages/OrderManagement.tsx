@@ -40,7 +40,7 @@ const OrderManagement = () => {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [sourceFilter, setSourceFilter] = useState<OrderSource | 'all'>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const filteredOrders = mockOrders.filter((order) => {

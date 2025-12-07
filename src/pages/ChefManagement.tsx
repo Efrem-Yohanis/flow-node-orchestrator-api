@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const ChefManagement = () => {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const totalOrders = mockChefs.reduce((acc, c) => acc + c.ordersCompletedToday, 0);
