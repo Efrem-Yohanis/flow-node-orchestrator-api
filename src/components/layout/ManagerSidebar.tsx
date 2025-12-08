@@ -108,12 +108,7 @@ export const ManagerSidebar = ({ onCloseMobile }: ManagerSidebarProps) => {
         })}
       </nav>
 
-      {/* Bottom Section */}
-      <div className="border-t border-sidebar-border p-3">
-        <div className="text-xs text-muted-foreground text-center">
-          {!collapsed && <span>RestaurantOS v1.0</span>}
-        </div>
-      </div>
     </aside>
+
   );
 };
