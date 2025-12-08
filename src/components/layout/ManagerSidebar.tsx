@@ -12,6 +12,7 @@ import {
   Utensils,
   ShoppingCart,
   Megaphone,
+  X,
 } from 'lucide-react';
 
 const navItems = [
@@ -24,14 +25,18 @@ const navItems = [
   { path: '/reports', label: 'Reports & Analytics', icon: BarChart3 },
 ];
 
-export const ManagerSidebar = () => {
+interface ManagerSidebarProps {
+  onCloseMobile?: () => void;
+}
+
+export const ManagerSidebar = ({ onCloseMobile }: ManagerSidebarProps) => {
   const { collapsed, setCollapsed } = useSidebarContext();
   const location = useLocation();
 
   return (
     <aside
       className={cn(
-        'h-full min-h-0 bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out flex flex-col flex-shrink-0',
+        'h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out flex flex-col flex-shrink-0',
         collapsed ? 'w-20' : 'w-64'
       )}
     >
@@ -48,9 +53,19 @@ export const ManagerSidebar = () => {
             </div>
           )}
         </div>
+        
+        {/* Close button for mobile */}
+        <button
+          onClick={onCloseMobile}
+          className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors lg:hidden"
+        >
+          <X className="h-4 w-4 text-muted-foreground" />
+        </button>
+        
+        {/* Collapse button for desktop */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors flex-shrink-0"
+          className="hidden lg:flex h-8 w-8 items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors flex-shrink-0"
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -68,6 +83,7 @@ export const ManagerSidebar = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onCloseMobile}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group',
                 isActive
@@ -92,7 +108,7 @@ export const ManagerSidebar = () => {
         })}
       </nav>
 
-      {/* Bottom Section - minimal */}
+      {/* Bottom Section */}
       <div className="border-t border-sidebar-border p-3">
         <div className="text-xs text-muted-foreground text-center">
           {!collapsed && <span>RestaurantOS v1.0</span>}

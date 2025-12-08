@@ -1,6 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Bell, Settings, Sun, Moon, LogOut, User } from 'lucide-react';
+import { Bell, Settings, Sun, Moon, LogOut, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,7 +11,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 
-export const TopNavbar = () => {
+interface TopNavbarProps {
+  onMenuToggle?: () => void;
+}
+
+export const TopNavbar = ({ onMenuToggle }: TopNavbarProps) => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -22,9 +26,19 @@ export const TopNavbar = () => {
   };
 
   return (
-    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 flex-shrink-0">
+    <header className="h-14 sm:h-16 border-b border-border bg-card flex items-center justify-between px-3 sm:px-6 flex-shrink-0">
       <div className="flex items-center gap-2">
-        <h2 className="text-lg font-semibold text-foreground">
+        {/* Mobile menu button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onMenuToggle}
+          className="lg:hidden text-muted-foreground hover:text-foreground"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        
+        <h2 className="text-sm sm:text-lg font-semibold text-foreground truncate">
           {user?.role === 'manager' && 'Manager Portal'}
           {user?.role === 'waiter' && 'Waiter Portal'}
           {user?.role === 'chef' && 'Chef Portal'}
@@ -32,32 +46,32 @@ export const TopNavbar = () => {
         </h2>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         {/* Dark Mode Toggle */}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleTheme}
-          className="text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground h-8 w-8 sm:h-10 sm:w-10"
         >
           {theme === 'dark' ? (
-            <Sun className="h-5 w-5" />
+            <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
           ) : (
-            <Moon className="h-5 w-5" />
+            <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
           )}
         </Button>
 
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground h-8 w-8 sm:h-10 sm:w-10">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-primary text-[10px] sm:text-xs font-bold text-primary-foreground">
                 5
               </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 bg-popover border border-border">
+          <DropdownMenuContent align="end" className="w-72 sm:w-80 bg-popover border border-border">
             <div className="p-3 border-b border-border">
               <h3 className="font-semibold text-foreground">Notifications</h3>
             </div>
@@ -86,24 +100,24 @@ export const TopNavbar = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Settings */}
+        {/* Settings - hidden on very small screens */}
         <Button
           variant="ghost"
           size="icon"
-          className="text-muted-foreground hover:text-foreground"
+          className="hidden sm:flex text-muted-foreground hover:text-foreground h-8 w-8 sm:h-10 sm:w-10"
           onClick={() => navigate('/reports')}
         >
-          <Settings className="h-5 w-5" />
+          <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
 
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                <User className="h-4 w-4" />
+            <Button variant="ghost" className="flex items-center gap-2 text-muted-foreground hover:text-foreground px-2 sm:px-3">
+              <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </div>
-              <span className="text-sm font-medium hidden sm:inline">
+              <span className="text-sm font-medium hidden md:inline">
                 {user?.name || 'Guest'}
               </span>
             </Button>
@@ -117,7 +131,7 @@ export const TopNavbar = () => {
               <User className="h-4 w-4 mr-2" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/reports')}>
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </DropdownMenuItem>
