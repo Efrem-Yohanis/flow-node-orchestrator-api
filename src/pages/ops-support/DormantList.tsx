@@ -6,17 +6,28 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
-import { Moon, CalendarIcon, Table, Users, TrendingUp, BarChart3, Loader2, CheckCircle2 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Moon, CalendarIcon, Table as TableIcon, Users, TrendingUp, BarChart3, Loader2, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 type TableStatus = "idle" | "creating" | "completed";
+type ResultStatus = "success" | "failed" | "pending";
 
 interface TableProgress {
   stillOnDormant: { status: TableStatus; progress: number };
   backToActive: { status: TableStatus; progress: number };
   performance: { status: TableStatus; progress: number };
+}
+
+interface TableTrackingRecord {
+  id: string;
+  tableName: string;
+  status: "in_progress" | "completed";
+  count: number;
+  result: ResultStatus;
 }
 
 export default function DormantList() {
@@ -25,11 +36,16 @@ export default function DormantList() {
   const [file, setFile] = useState<File | null>(null);
   const [fromDate, setFromDate] = useState<Date>();
   const [toDate, setToDate] = useState<Date>();
+  const [activeCustomerTableName, setActiveCustomerTableName] = useState("");
+  const [stillOnDormantTableName, setStillOnDormantTableName] = useState("");
+  const [backToActiveTableName, setBackToActiveTableName] = useState("");
+  const [performanceTableName, setPerformanceTableName] = useState("");
   const [tableProgress, setTableProgress] = useState<TableProgress>({
     stillOnDormant: { status: "idle", progress: 0 },
     backToActive: { status: "idle", progress: 0 },
     performance: { status: "idle", progress: 0 },
   });
+  const [trackingRecords, setTrackingRecords] = useState<TableTrackingRecord[]>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -37,7 +53,27 @@ export default function DormantList() {
     }
   };
 
-  const simulateProgress = (tableKey: keyof TableProgress) => {
+  const addTrackingRecord = (tableName: string) => {
+    const newRecord: TableTrackingRecord = {
+      id: crypto.randomUUID(),
+      tableName,
+      status: "in_progress",
+      count: 0,
+      result: "pending",
+    };
+    setTrackingRecords(prev => [...prev, newRecord]);
+    return newRecord.id;
+  };
+
+  const updateTrackingRecord = (id: string, updates: Partial<TableTrackingRecord>) => {
+    setTrackingRecords(prev => prev.map(record => 
+      record.id === id ? { ...record, ...updates } : record
+    ));
+  };
+
+  const simulateProgress = (tableKey: keyof TableProgress, tableName: string) => {
+    const recordId = addTrackingRecord(tableName);
+    
     setTableProgress(prev => ({
       ...prev,
       [tableKey]: { status: "creating", progress: 0 }
@@ -53,6 +89,12 @@ export default function DormantList() {
           ...prev,
           [tableKey]: { status: "completed", progress: 100 }
         }));
+        const isSuccess = Math.random() > 0.2;
+        updateTrackingRecord(recordId, {
+          status: "completed",
+          count: Math.floor(Math.random() * 10000) + 1000,
+          result: isSuccess ? "success" : "failed",
+        });
       } else {
         setTableProgress(prev => ({
           ...prev,
@@ -67,40 +109,55 @@ export default function DormantList() {
       toast({ title: "Error", description: "Please select both From and To dates", variant: "destructive" });
       return;
     }
-    toast({ title: "Creating Active Customer Table", description: `From ${format(fromDate, "PPP")} to ${format(toDate, "PPP")}` });
+    if (!activeCustomerTableName.trim()) {
+      toast({ title: "Error", description: "Please enter a table name", variant: "destructive" });
+      return;
+    }
+    const recordId = addTrackingRecord(activeCustomerTableName);
+    toast({ title: "Creating Active Customer Table", description: `Table: ${activeCustomerTableName}` });
+    
+    setTimeout(() => {
+      updateTrackingRecord(recordId, {
+        status: "completed",
+        count: Math.floor(Math.random() * 50000) + 5000,
+        result: "success",
+      });
+    }, 3000);
   };
 
   const handleCreateStillOnDormantTable = () => {
-    if (!tablePostfix) {
-      toast({ title: "Error", description: "Please enter table name postfix", variant: "destructive" });
+    if (!stillOnDormantTableName.trim()) {
+      toast({ title: "Error", description: "Please enter table name", variant: "destructive" });
       return;
     }
-    simulateProgress("stillOnDormant");
-    toast({ title: "Creating Still on Dormant Table", description: `Table: dormant_still_${tablePostfix}` });
+    simulateProgress("stillOnDormant", stillOnDormantTableName);
+    toast({ title: "Creating Still on Dormant Table", description: `Table: ${stillOnDormantTableName}` });
   };
 
   const handleCreateBackToActiveTable = () => {
-    if (!tablePostfix) {
-      toast({ title: "Error", description: "Please enter table name postfix", variant: "destructive" });
+    if (!backToActiveTableName.trim()) {
+      toast({ title: "Error", description: "Please enter table name", variant: "destructive" });
       return;
     }
-    simulateProgress("backToActive");
-    toast({ title: "Creating Back to Active Table", description: `Table: back_to_active_${tablePostfix}` });
+    simulateProgress("backToActive", backToActiveTableName);
+    toast({ title: "Creating Back to Active Table", description: `Table: ${backToActiveTableName}` });
   };
 
   const handleCreatePerformanceTable = () => {
-    if (!tablePostfix) {
-      toast({ title: "Error", description: "Please enter table name postfix", variant: "destructive" });
+    if (!performanceTableName.trim()) {
+      toast({ title: "Error", description: "Please enter table name", variant: "destructive" });
       return;
     }
-    simulateProgress("performance");
-    toast({ title: "Creating Performance Table", description: `Table: performance_${tablePostfix}` });
+    simulateProgress("performance", performanceTableName);
+    toast({ title: "Creating Performance Table", description: `Table: ${performanceTableName}` });
   };
 
   const renderTableCard = (
     title: string,
     tableKey: keyof TableProgress,
     icon: React.ReactNode,
+    tableName: string,
+    setTableName: (value: string) => void,
     onClick: () => void
   ) => {
     const { status, progress } = tableProgress[tableKey];
@@ -116,6 +173,17 @@ export default function DormantList() {
               <span className="font-medium text-sm">{title}</span>
             </div>
             {isCompleted && <CheckCircle2 className="h-5 w-5 text-green-500" />}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Table Name</Label>
+            <Input
+              placeholder="Enter table name"
+              value={tableName}
+              onChange={(e) => setTableName(e.target.value)}
+              disabled={isCreating}
+              className="h-8 text-sm"
+            />
           </div>
           
           {(isCreating || isCompleted) && (
@@ -148,9 +216,26 @@ export default function DormantList() {
     );
   };
 
+  const getStatusBadge = (status: "in_progress" | "completed") => {
+    if (status === "in_progress") {
+      return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">In Progress</Badge>;
+    }
+    return <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">Completed</Badge>;
+  };
+
+  const getResultBadge = (result: ResultStatus) => {
+    if (result === "pending") {
+      return <Badge variant="outline" className="bg-muted text-muted-foreground">Pending</Badge>;
+    }
+    if (result === "success") {
+      return <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">Success</Badge>;
+    }
+    return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">Failed</Badge>;
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 w-full">
+      <div className="w-full p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Dormant List
@@ -202,6 +287,15 @@ export default function DormantList() {
           </CardHeader>
           <CardContent className="pt-6">
             <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-2">
+                <Label>Table Name</Label>
+                <Input
+                  placeholder="Enter table name"
+                  value={activeCustomerTableName}
+                  onChange={(e) => setActiveCustomerTableName(e.target.value)}
+                  className="w-[200px]"
+                />
+              </div>
               <div className="space-y-2">
                 <Label>From Date</Label>
                 <Popover>
@@ -255,7 +349,7 @@ export default function DormantList() {
                 </Popover>
               </div>
               <Button onClick={handleCreateActiveCustomerTable} className="gap-2">
-                <Table className="h-4 w-4" />
+                <TableIcon className="h-4 w-4" />
                 Create Active Customer Table
               </Button>
             </div>
@@ -277,21 +371,66 @@ export default function DormantList() {
                 "Still on Dormant Table",
                 "stillOnDormant",
                 <Moon className="h-4 w-4 text-muted-foreground" />,
+                stillOnDormantTableName,
+                setStillOnDormantTableName,
                 handleCreateStillOnDormantTable
               )}
               {renderTableCard(
                 "Back to Active Table",
                 "backToActive",
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />,
+                backToActiveTableName,
+                setBackToActiveTableName,
                 handleCreateBackToActiveTable
               )}
               {renderTableCard(
                 "Performance Table",
                 "performance",
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />,
+                performanceTableName,
+                setPerformanceTableName,
                 handleCreatePerformanceTable
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Table Creation Tracking */}
+        <Card className="border-2 shadow-elegant">
+          <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-transparent">
+            <CardTitle className="flex items-center gap-2">
+              <TableIcon className="h-5 w-5" />
+              Table Creation Tracking
+            </CardTitle>
+            <CardDescription>Track the status of created tables</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {trackingRecords.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No tables created yet. Create a table to see tracking information.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Table Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Count</TableHead>
+                    <TableHead>Result</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trackingRecords.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-medium">{record.tableName}</TableCell>
+                      <TableCell>{getStatusBadge(record.status)}</TableCell>
+                      <TableCell>{record.count > 0 ? record.count.toLocaleString() : "-"}</TableCell>
+                      <TableCell>{getResultBadge(record.result)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
