@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calendar as CalendarIcon, Users, Clock, DollarSign, Target, Gift, CreditCard, X, Wallet, Building } from "lucide-react";
+import { Calendar as CalendarIcon, Users, Clock, DollarSign, Target, Gift, CreditCard, X, Wallet, Building, Upload } from "lucide-react";
 import { BaseTableBuilder } from "@/components/base-preparation/BaseTableBuilder";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -14,7 +14,7 @@ import { format } from "date-fns";
 
 interface TableFieldConfig {
   name: string;
-  type: "text" | "number" | "date" | "dropdown" | "date-conditional";
+  type: "text" | "number" | "date" | "dropdown" | "date-conditional" | "file";
   label: string;
   required: boolean;
   placeholder?: string;
@@ -40,6 +40,17 @@ interface TableStatus {
 }
 
 const availableTables: { id: string; label: string; icon: any; borderColor: string; fields: TableFieldConfig[]; allowMultiple?: boolean }[] = [
+  { 
+    id: "from_input", 
+    label: "FROM INPUT", 
+    icon: Upload, 
+    borderColor: "border-l-emerald-500",
+    allowMultiple: true,
+    fields: [
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., custom_input_table" },
+      { name: "file_input", type: "file", label: "File Input", required: true },
+    ]
+  },
   { 
     id: "staff_list", 
     label: "STAFF LIST", 
@@ -422,6 +433,18 @@ export default function BasePreparation() {
               />
             </PopoverContent>
           </Popover>
+        );
+      case "file":
+        return (
+          <Input 
+            type="file" 
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              updateTableField(table.instanceId, field.name, file?.name || "");
+            }}
+            disabled={isGenerating}
+            className="cursor-pointer"
+          />
         );
       default:
         return null;
