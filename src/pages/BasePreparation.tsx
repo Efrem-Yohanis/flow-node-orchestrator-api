@@ -420,8 +420,8 @@ export default function BasePreparation() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto p-6 space-y-6">
+    <div className="w-full space-y-6">
+      <div className="w-full">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Base Preparation Dashboard

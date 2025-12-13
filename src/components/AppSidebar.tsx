@@ -1,4 +1,4 @@
-import { LayoutDashboard, ChevronRight, Database, Megaphone, Headphones, Gavel, Moon, Lock, FileCode2, Zap, KeyRound, UserCheck } from "lucide-react";
+import { LayoutDashboard, ChevronRight, Database, Megaphone, Headphones, Gavel, Moon, Lock, FileCode2, Zap, KeyRound, UserCheck, Table2, FolderOpen, Save } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -25,6 +25,11 @@ const opsSupportItems = [
   { title: "Court Issue", url: "/ops-support/court-issue", icon: Gavel },
   { title: "Dormant List", url: "/ops-support/dormant-list", icon: Moon },
   { title: "Pinlock", url: "/ops-support/pinlock", icon: Lock },
+];
+
+const tablesItems = [
+  { title: "My Schema", url: "/tables/schema", icon: FolderOpen },
+  { title: "Saved Tables", url: "/tables/saved", icon: Save },
 ];
 
 export function AppSidebar() {
@@ -114,6 +119,42 @@ export function AppSidebar() {
                 <SidebarMenuItem className="animate-fade-in">
                   <SidebarMenuButton className="group relative overflow-hidden rounded-lg hover:bg-sidebar-accent/80 transition-all duration-300 justify-center">
                     <Megaphone className="h-4 w-4 transition-transform group-hover:scale-110 group-hover:text-sidebar-primary" />
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {/* Tables - Collapsible */}
+              {open ? (
+                <Collapsible className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="group relative overflow-hidden rounded-lg hover:bg-sidebar-accent/80 transition-all duration-300">
+                        <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-5 transition-opacity" />
+                        <Table2 className="h-4 w-4 transition-transform group-hover:scale-110 group-hover:text-sidebar-primary" />
+                        <span className="text-sm transition-colors">Tables</span>
+                        <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {tablesItems.map((item, idx) => (
+                          <SidebarMenuSubItem key={item.title} className="animate-fade-in" style={{ animationDelay: `${idx * 15}ms` }}>
+                            <SidebarMenuSubButton asChild className="group relative overflow-hidden hover:bg-sidebar-accent/80 transition-all duration-300">
+                              <NavLink to={item.url} className="relative z-10" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+                                <item.icon className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                                <span className="text-xs">{item.title}</span>
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              ) : (
+                <SidebarMenuItem className="animate-fade-in">
+                  <SidebarMenuButton className="group relative overflow-hidden rounded-lg hover:bg-sidebar-accent/80 transition-all duration-300 justify-center">
+                    <Table2 className="h-4 w-4 transition-transform group-hover:scale-110 group-hover:text-sidebar-primary" />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}

@@ -8,6 +8,9 @@ import Dashboard from "./pages/Dashboard";
 import MetricDetail from "./pages/MetricDetail";
 import BasePreparation from "./pages/BasePreparation";
 import TableDetailPage from "./pages/base-preparation/TableDetailPage";
+import MySchemaPage from "./pages/tables/MySchemaPage";
+import SavedTablesPage from "./pages/tables/SavedTablesPage";
+import TableViewPage from "./pages/tables/TableViewPage";
 import CourtIssue from "./pages/ops-support/CourtIssue";
 import DormantList from "./pages/ops-support/DormantList";
 import Pinlock from "./pages/ops-support/Pinlock";
@@ -32,6 +35,10 @@ const App = () => (
             <Route path="metric/:metricId" element={<MetricDetail />} />
             <Route path="base-preparation" element={<BasePreparation />} />
             <Route path="base-preparation/table/:tableName" element={<TableDetailPage />} />
+            <Route path="tables/schema" element={<MySchemaPage />} />
+            <Route path="tables/saved" element={<SavedTablesPage />} />
+            <Route path="tables/schema/:tableName/view" element={<TableViewPage />} />
+            <Route path="tables/saved/:tableName/view" element={<TableViewPage />} />
             <Route path="campaign/ccbe" element={<CCBECampaign />} />
             <Route path="campaign/ga-pin-reset" element={<GAPinResetCampaign />} />
             <Route path="campaign/won-back-churner" element={<WonBackChurner />} />
