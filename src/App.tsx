@@ -3,51 +3,49 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { AuthProvider } from "@/contexts/AuthContext";
+import MainLayout from "./pages/MainLayout";
 import Dashboard from "./pages/Dashboard";
-import OrderManagement from "./pages/OrderManagement";
-import AllOrders from "./pages/AllOrders";
-import WaiterManagement from "./pages/WaiterManagement";
-import WaiterDetail from "./pages/WaiterDetail";
-import ChefManagement from "./pages/ChefManagement";
-import ChefDetail from "./pages/ChefDetail";
-import CustomerManagement from "./pages/CustomerManagement";
-import CustomerDetail from "./pages/CustomerDetail";
-import Advertisements from "./pages/Advertisements";
-import AdvertisementDetail from "./pages/AdvertisementDetail";
-import Reports from "./pages/Reports";
+import MetricDetail from "./pages/MetricDetail";
+import BasePreparation from "./pages/BasePreparation";
+import TableDetailPage from "./pages/base-preparation/TableDetailPage";
+import CourtIssue from "./pages/ops-support/CourtIssue";
+import DormantList from "./pages/ops-support/DormantList";
+import Pinlock from "./pages/ops-support/Pinlock";
+import SQLQueryLibrary from "./pages/SQLQueryLibrary";
+import SQLQueryDetail from "./pages/SQLQueryDetail";
+import CCBECampaign from "./pages/campaigns/CCBECampaign";
+import GAPinResetCampaign from "./pages/campaigns/GAPinResetCampaign";
+import WonBackChurner from "./pages/campaigns/WonBackChurner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/orders" element={<OrderManagement />} />
-              <Route path="/all-orders" element={<AllOrders />} />
-              <Route path="/waiters" element={<WaiterManagement />} />
-              <Route path="/waiters/:id" element={<WaiterDetail />} />
-              <Route path="/chefs" element={<ChefManagement />} />
-              <Route path="/chefs/:id" element={<ChefDetail />} />
-              <Route path="/customers" element={<CustomerManagement />} />
-              <Route path="/customers/:id" element={<CustomerDetail />} />
-              <Route path="/advertisements" element={<Advertisements />} />
-              <Route path="/advertisements/:id" element={<AdvertisementDetail />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="metric/:metricId" element={<MetricDetail />} />
+            <Route path="base-preparation" element={<BasePreparation />} />
+            <Route path="base-preparation/table/:tableName" element={<TableDetailPage />} />
+            <Route path="campaign/ccbe" element={<CCBECampaign />} />
+            <Route path="campaign/ga-pin-reset" element={<GAPinResetCampaign />} />
+            <Route path="campaign/won-back-churner" element={<WonBackChurner />} />
+            <Route path="ops-support/court-issue" element={<CourtIssue />} />
+            <Route path="ops-support/dormant-list" element={<DormantList />} />
+            <Route path="ops-support/pinlock" element={<Pinlock />} />
+            <Route path="sql-query-library" element={<SQLQueryLibrary />} />
+            <Route path="sql-query/:queryId" element={<SQLQueryDetail />} />
+          </Route>
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
