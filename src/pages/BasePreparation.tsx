@@ -163,16 +163,6 @@ export default function BasePreparation() {
     
     const table = availableTables.find(t => t.id === selectedTableId);
     if (!table) return;
-    
-    // Only check for duplicates if allowMultiple is not true
-    if (!table.allowMultiple && selectedTables.some(t => t.id === selectedTableId)) {
-      toast({
-        title: "Already Added",
-        description: "This table is already in your configuration.",
-        variant: "destructive"
-      });
-      return;
-    }
 
     const initialValues: Record<string, any> = {};
     table.fields.forEach(field => {
@@ -439,9 +429,8 @@ export default function BasePreparation() {
   };
 
   const completedTables = tableStatuses.filter(t => t.status === "completed").length;
-  const availableToSelect = availableTables.filter(
-    table => !selectedTables.some(st => st.id === table.id)
-  );
+  // All tables are always available for selection (no filtering)
+  const availableToSelect = availableTables;
 
   return (
     <div className="w-full space-y-6">
