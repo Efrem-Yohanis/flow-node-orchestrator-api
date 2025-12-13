@@ -23,11 +23,13 @@ interface TableFieldConfig {
 
 interface TableConfig {
   id: string;
+  instanceId: string;
   label: string;
   icon: any;
   borderColor: string;
   fields: TableFieldConfig[];
   values: Record<string, any>;
+  allowMultiple?: boolean;
 }
 
 interface TableStatus {
@@ -37,7 +39,27 @@ interface TableStatus {
   parameters: string;
 }
 
-const availableTables: { id: string; label: string; icon: any; borderColor: string; fields: TableFieldConfig[] }[] = [
+const availableTables: { id: string; label: string; icon: any; borderColor: string; fields: TableFieldConfig[]; allowMultiple?: boolean }[] = [
+  { 
+    id: "staff_list", 
+    label: "STAFF LIST", 
+    icon: Users, 
+    borderColor: "border-l-teal-500",
+    allowMultiple: true,
+    fields: [
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., staff_list_jan_2024" },
+    ]
+  },
+  { 
+    id: "fraud_customer", 
+    label: "FRAUD CUSTOMER", 
+    icon: Users, 
+    borderColor: "border-l-orange-500",
+    allowMultiple: true,
+    fields: [
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., fraud_customer_jan_2024" },
+    ]
+  },
   { 
     id: "active_customers", 
     label: "ACTIVE CUSTOMERS", 
@@ -142,7 +164,8 @@ export default function BasePreparation() {
     const table = availableTables.find(t => t.id === selectedTableId);
     if (!table) return;
     
-    if (selectedTables.some(t => t.id === selectedTableId)) {
+    // Only check for duplicates if allowMultiple is not true
+    if (!table.allowMultiple && selectedTables.some(t => t.id === selectedTableId)) {
       toast({
         title: "Already Added",
         description: "This table is already in your configuration.",
@@ -162,6 +185,7 @@ export default function BasePreparation() {
 
     const newTable: TableConfig = {
       ...table,
+      instanceId: crypto.randomUUID(),
       values: initialValues
     };
     
@@ -169,13 +193,13 @@ export default function BasePreparation() {
     setSelectedTableId("");
   };
 
-  const handleRemoveTable = (tableId: string) => {
-    setSelectedTables(selectedTables.filter(t => t.id !== tableId));
+  const handleRemoveTable = (instanceId: string) => {
+    setSelectedTables(selectedTables.filter(t => t.instanceId !== instanceId));
   };
 
-  const updateTableField = (tableId: string, fieldName: string, value: any) => {
+  const updateTableField = (instanceId: string, fieldName: string, value: any) => {
     setSelectedTables(selectedTables.map(table => 
-      table.id === tableId 
+      table.instanceId === instanceId 
         ? { ...table, values: { ...table.values, [fieldName]: value } }
         : table
     ));
@@ -304,7 +328,7 @@ export default function BasePreparation() {
           <Input 
             type="text" 
             value={value} 
-            onChange={(e) => updateTableField(table.id, field.name, e.target.value)}
+            onChange={(e) => updateTableField(table.instanceId, field.name, e.target.value)}
             placeholder={field.placeholder}
             disabled={isGenerating}
           />
@@ -314,7 +338,7 @@ export default function BasePreparation() {
           <Input 
             type="number" 
             value={value} 
-            onChange={(e) => updateTableField(table.id, field.name, e.target.value)}
+            onChange={(e) => updateTableField(table.instanceId, field.name, e.target.value)}
             placeholder={field.placeholder}
             disabled={isGenerating}
           />
@@ -332,7 +356,7 @@ export default function BasePreparation() {
               <Calendar
                 mode="single"
                 selected={value}
-                onSelect={(date) => updateTableField(table.id, field.name, date)}
+                onSelect={(date) => updateTableField(table.instanceId, field.name, date)}
                 initialFocus
               />
             </PopoverContent>
@@ -340,7 +364,7 @@ export default function BasePreparation() {
         );
       case "dropdown":
         return (
-          <Select value={value} onValueChange={(val) => updateTableField(table.id, field.name, val)} disabled={isGenerating}>
+          <Select value={value} onValueChange={(val) => updateTableField(table.instanceId, field.name, val)} disabled={isGenerating}>
             <SelectTrigger className="bg-background">
               <SelectValue placeholder="Select an option..." />
             </SelectTrigger>
@@ -367,7 +391,7 @@ export default function BasePreparation() {
                   <Calendar
                     mode="single"
                     selected={value?.start}
-                    onSelect={(date) => updateTableField(table.id, field.name, { ...value, start: date })}
+                    onSelect={(date) => updateTableField(table.instanceId, field.name, { ...value, start: date })}
                     initialFocus
                   />
                 </PopoverContent>
@@ -383,7 +407,7 @@ export default function BasePreparation() {
                   <Calendar
                     mode="single"
                     selected={value?.end}
-                    onSelect={(date) => updateTableField(table.id, field.name, { ...value, end: date })}
+                    onSelect={(date) => updateTableField(table.instanceId, field.name, { ...value, end: date })}
                     initialFocus
                   />
                 </PopoverContent>
@@ -403,7 +427,7 @@ export default function BasePreparation() {
               <Calendar
                 mode="single"
                 selected={value?.single}
-                onSelect={(date) => updateTableField(table.id, field.name, { ...value, single: date })}
+                onSelect={(date) => updateTableField(table.instanceId, field.name, { ...value, single: date })}
                 initialFocus
               />
             </PopoverContent>
@@ -486,7 +510,7 @@ export default function BasePreparation() {
               {selectedTables.map(table => {
                 const Icon = table.icon;
                 return (
-                  <Card key={table.id} className={`border-l-4 ${table.borderColor}`}>
+                  <Card key={table.instanceId} className={`border-l-4 ${table.borderColor}`}>
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between text-base">
                         <div className="flex items-center gap-2">
@@ -496,7 +520,7 @@ export default function BasePreparation() {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handleRemoveTable(table.id)}
+                          onClick={() => handleRemoveTable(table.instanceId)}
                           disabled={isGenerating}
                         >
                           <X className="h-4 w-4" />

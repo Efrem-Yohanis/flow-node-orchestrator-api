@@ -324,9 +324,11 @@ ${conditions}
                         <SelectValue placeholder="Select table..." />
                       </SelectTrigger>
                       <SelectContent className="bg-background z-50">
-                        {availableTables.map(t => (
-                          <SelectItem key={t} value={t}>{t}</SelectItem>
-                        ))}
+                        {availableTables
+                          .filter(t => t === table.tableName || !sourceTables.some(st => st.tableName === t))
+                          .map(t => (
+                            <SelectItem key={t} value={t}>{t}</SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                     <Select 
@@ -397,7 +399,7 @@ ${conditions}
                 setIsEdited(true);
               }}
               placeholder="Click 'Regenerate' to generate SQL from your configuration..."
-              className="font-mono text-sm min-h-[150px] bg-muted/30"
+              className="font-mono text-sm min-h-[300px] bg-muted/30"
             />
           </div>
 
