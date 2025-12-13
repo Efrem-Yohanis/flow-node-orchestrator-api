@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, X, Rocket, Copy, RefreshCw, Eye, Database } from "lucide-react";
+import { Plus, X, Rocket, Copy, RefreshCw, Eye, Database, Save } from "lucide-react";
+import { saveTable } from "@/lib/savedTables";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -221,6 +222,31 @@ ${conditions}
     return <Badge variant="destructive">Failed</Badge>;
   };
 
+  const handleSaveTable = (table: TableCreationStatus) => {
+    if (table.status !== "completed" || !table.rowCount) {
+      toast({
+        title: "Cannot Save",
+        description: "Can only save completed tables.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    saveTable({
+      tableName: table.name,
+      createdFrom: `${baseTableName}_${postfix}`,
+      columns: table.columns,
+      rowCount: table.rowCount,
+      dateCreated: table.completionTime || new Date().toISOString().split('T')[0],
+      timeTaken: "N/A",
+    });
+
+    toast({
+      title: "Table Saved",
+      description: `Table ${table.name} has been saved.`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border-2 shadow-elegant">
@@ -404,7 +430,7 @@ ${conditions}
                     <TableHead>Columns</TableHead>
                     <TableHead>Row Count</TableHead>
                     <TableHead>Result</TableHead>
-                    <TableHead className="text-center">Action</TableHead>
+                      <TableHead className="text-center">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -417,15 +443,27 @@ ${conditions}
                       <TableCell>{table.rowCount?.toLocaleString() || "—"}</TableCell>
                       <TableCell>{getResultBadge(table.result)}</TableCell>
                       <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/base-preparation/table/${encodeURIComponent(table.name)}`)}
-                          className="gap-1"
-                        >
-                          <Eye className="h-4 w-4" />
-                          View
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/base-preparation/table/${encodeURIComponent(table.name)}`)}
+                            className="gap-1"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSaveTable(table)}
+                            disabled={table.status !== "completed"}
+                            className="gap-1"
+                          >
+                            <Save className="h-4 w-4" />
+                            Save
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
