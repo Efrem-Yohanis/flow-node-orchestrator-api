@@ -52,6 +52,16 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     ]
   },
   { 
+    id: "from_my_schema", 
+    label: "FROM MY SCHEMA", 
+    icon: Building, 
+    borderColor: "border-l-cyan-500",
+    allowMultiple: true,
+    fields: [
+      { name: "schema_table", type: "text", label: "Schema Table Name", required: true, placeholder: "e.g., users, orders" },
+    ]
+  },
+  { 
     id: "staff_list", 
     label: "STAFF LIST", 
     icon: Users, 
