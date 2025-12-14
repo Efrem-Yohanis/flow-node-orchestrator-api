@@ -62,6 +62,18 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     ]
   },
   { 
+    id: "ga_customers", 
+    label: "GA CUSTOMERS", 
+    icon: Users, 
+    borderColor: "border-l-emerald-500",
+    allowMultiple: true,
+    fields: [
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., ga_customers_table" },
+      { name: "data_from", type: "date", label: "Data From (End Date)", required: true },
+      { name: "active_for_days", type: "number", label: "Active For (Days)", required: false, placeholder: "e.g., 30" },
+    ]
+  },
+  { 
     id: "staff_list", 
     label: "STAFF LIST", 
     icon: Users, 
