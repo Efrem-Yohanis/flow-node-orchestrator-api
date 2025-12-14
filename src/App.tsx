@@ -19,6 +19,7 @@ import SQLQueryDetail from "./pages/SQLQueryDetail";
 import CCBECampaign from "./pages/campaigns/CCBECampaign";
 import GAPinResetCampaign from "./pages/campaigns/GAPinResetCampaign";
 import WonBackChurner from "./pages/campaigns/WonBackChurner";
+import TaskManager from "./pages/TaskManager";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="ops-support/pinlock" element={<Pinlock />} />
             <Route path="sql-query-library" element={<SQLQueryLibrary />} />
             <Route path="sql-query/:queryId" element={<SQLQueryDetail />} />
+            <Route path="task-manager" element={<TaskManager />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
