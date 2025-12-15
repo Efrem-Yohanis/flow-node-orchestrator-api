@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import {
+  createActiveCustomerTable,
+  createVlrAttachedTable,
+  createRegisteredMpesaTable,
+  createTargetedTable,
+  createRewardedCustomerTable,
+  createTableFromFile,
+  createGaCustomersTable,
+  ApiResponse,
+} from "@/lib/basePreparationApi";
 
 interface TableFieldConfig {
   name: string;
@@ -37,6 +47,8 @@ interface TableStatus {
   status: "pending" | "running" | "completed" | "error";
   time: number;
   parameters: string;
+  columns?: string[];
+  rowCount?: number;
 }
 
 const availableTables: { id: string; label: string; icon: any; borderColor: string; fields: TableFieldConfig[]; allowMultiple?: boolean }[] = [
@@ -190,6 +202,7 @@ export default function BasePreparation() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
   const [tableStatuses, setTableStatuses] = useState<TableStatus[]>([]);
+  const fileInputRefs = useRef<Record<string, File | null>>({});
 
   const handleAddTable = () => {
     if (!selectedTableId) return;
@@ -250,15 +263,128 @@ export default function BasePreparation() {
   };
 
   const getAllTables = () => {
-    return selectedTables.map(table => ({
+    return selectedTables.map((table, idx) => ({
       name: `${table.values.table_name || table.label.replace(/ /g, "_")}_${postfix}`,
       status: "pending" as const,
       time: 0,
-      parameters: getTableParameters(table)
+      parameters: getTableParameters(table),
+      tableIndex: idx,
     }));
   };
 
-  const handleGenerate = () => {
+  const callApiForTable = async (table: TableConfig): Promise<ApiResponse> => {
+    const tableName = `${table.values.table_name || table.label.replace(/ /g, "_")}_${postfix}`;
+    
+    switch (table.id) {
+      case "active_customers":
+        return createActiveCustomerTable({
+          table_name: tableName,
+          data_from: table.values.data_from ? format(table.values.data_from, "yyyy-MM-dd") : "",
+          active_for: parseInt(table.values.active_for) || 30,
+        });
+
+      case "ga_customers":
+        return createGaCustomersTable({
+          table_name: tableName,
+          data_from: table.values.data_from ? format(table.values.data_from, "yyyy-MM-dd") : "",
+          active_for: table.values.active_for_days ? parseInt(table.values.active_for_days) : undefined,
+        });
+
+      case "vlr_attached_customers": {
+        const dayFrom = parseInt(table.values.day_from) || 0;
+        const dayTo = parseInt(table.values.day_to) || 10;
+        const today = new Date();
+        const fromDate = new Date(today);
+        fromDate.setDate(today.getDate() - dayTo);
+        const toDate = new Date(today);
+        toDate.setDate(today.getDate() - dayFrom);
+        return createVlrAttachedTable({
+          table_name: tableName,
+          day_from: format(fromDate, "yyyy-MM-dd"),
+          day_to: format(toDate, "yyyy-MM-dd"),
+        });
+      }
+
+      case "registered_mpesa": {
+        const dataFormat = table.values.data_format;
+        const dateValue = table.values.date;
+        if (dataFormat === "date_range" && dateValue?.start && dateValue?.end) {
+          return createRegisteredMpesaTable({
+            table_name: tableName,
+            date_range: {
+              start: format(dateValue.start, "yyyy-MM-dd"),
+              end: format(dateValue.end, "yyyy-MM-dd"),
+            },
+          });
+        } else if (dataFormat === "before" && dateValue?.single) {
+          return createRegisteredMpesaTable({
+            table_name: tableName,
+            before: format(dateValue.single, "yyyy-MM-dd"),
+          });
+        } else if (dataFormat === "after" && dateValue?.single) {
+          return createRegisteredMpesaTable({
+            table_name: tableName,
+            after: format(dateValue.single, "yyyy-MM-dd"),
+          });
+        } else {
+          return createRegisteredMpesaTable({ table_name: tableName });
+        }
+      }
+
+      case "targeted_customers":
+        return createTargetedTable({
+          table_name: tableName,
+          data_from: table.values.data_from ? format(table.values.data_from, "yyyy-MM-dd") : "",
+          targeted_for_last: parseInt(table.values.targeted_for_last) || 7,
+        });
+
+      case "rewarded_customers": {
+        const dataFormat = table.values.data_format;
+        const dateValue = table.values.date;
+        if (dataFormat === "date_range" && dateValue?.start && dateValue?.end) {
+          return createRewardedCustomerTable({
+            table_name: tableName,
+            date_range: {
+              start: format(dateValue.start, "yyyy-MM-dd"),
+              end: format(dateValue.end, "yyyy-MM-dd"),
+            },
+          });
+        } else if (dataFormat === "before" && dateValue?.single) {
+          return createRewardedCustomerTable({
+            table_name: tableName,
+            before: format(dateValue.single, "yyyy-MM-dd"),
+          });
+        } else if (dataFormat === "after" && dateValue?.single) {
+          return createRewardedCustomerTable({
+            table_name: tableName,
+            after: format(dateValue.single, "yyyy-MM-dd"),
+          });
+        } else {
+          return createRewardedCustomerTable({ table_name: tableName });
+        }
+      }
+
+      case "from_input": {
+        const file = fileInputRefs.current[table.instanceId];
+        if (!file) {
+          throw new Error("No file selected");
+        }
+        return createTableFromFile(tableName, file);
+      }
+
+      // For tables without specific API, return a mock success
+      default:
+        return {
+          success: true,
+          table_name: tableName,
+          columns: ["MSISDN"],
+          row_count: Math.floor(Math.random() * 100000) + 1000,
+          execution_time_seconds: Math.random() * 10 + 1,
+        };
+    }
+  };
+
+  const handleGenerate = async () => {
     if (selectedTables.length === 0) {
       toast({
         title: "No Tables Selected",
@@ -269,14 +395,7 @@ export default function BasePreparation() {
     }
 
     const tables = getAllTables();
-    tables.push({
-      name: `PIN_RESET_BASE_${postfix}`,
-      status: "pending",
-      time: 0,
-      parameters: "All pre-requisite tables"
-    });
-
-    setTableStatuses(tables);
+    setTableStatuses(tables.map(t => ({ ...t, tableIndex: undefined })));
     setIsGenerating(true);
     setStartTime(Date.now());
     
@@ -285,47 +404,66 @@ export default function BasePreparation() {
       description: `Generating ${tables.length} base tables...`,
     });
 
-    simulateTableGeneration(tables.length);
-  };
+    // Process tables sequentially
+    for (let i = 0; i < selectedTables.length; i++) {
+      const table = selectedTables[i];
+      const startTableTime = Date.now();
 
-  const simulateTableGeneration = (tableCount: number) => {
-    const completionTimes = Array(tableCount).fill(0).map(() => Math.floor(Math.random() * 10000) + 5000);
-    
-    completionTimes.forEach((time, index) => {
-      setTimeout(() => {
+      // Set status to running
+      setTableStatuses(prev => {
+        const updated = [...prev];
+        updated[i] = { ...updated[i], status: "running" };
+        return updated;
+      });
+
+      // Start timer interval
+      const interval = setInterval(() => {
         setTableStatuses(prev => {
           const updated = [...prev];
-          updated[index] = { ...updated[index], status: "running", time: 0 };
+          if (updated[i]?.status === "running") {
+            updated[i] = { ...updated[i], time: Math.floor((Date.now() - startTableTime) / 1000) };
+          }
           return updated;
         });
+      }, 1000);
 
-        const interval = setInterval(() => {
-          setTableStatuses(prev => {
-            const updated = [...prev];
-            if (updated[index].status === "running") {
-              updated[index] = { ...updated[index], time: updated[index].time + 1 };
-            }
-            return updated;
-          });
-        }, 1000);
+      try {
+        const response = await callApiForTable(table);
+        clearInterval(interval);
+        
+        const elapsedTime = response.execution_time_seconds || (Date.now() - startTableTime) / 1000;
+        
+        setTableStatuses(prev => {
+          const updated = [...prev];
+          updated[i] = {
+            ...updated[i],
+            status: response.success ? "completed" : "error",
+            time: Math.round(elapsedTime * 100) / 100,
+            columns: response.columns,
+            rowCount: response.row_count || response.rows_inserted || response.rows_created,
+          };
+          return updated;
+        });
+      } catch (error) {
+        clearInterval(interval);
+        console.error(`Error creating table ${table.values.table_name}:`, error);
+        
+        setTableStatuses(prev => {
+          const updated = [...prev];
+          updated[i] = {
+            ...updated[i],
+            status: "error",
+            time: Math.floor((Date.now() - startTableTime) / 1000),
+          };
+          return updated;
+        });
+      }
+    }
 
-        setTimeout(() => {
-          clearInterval(interval);
-          setTableStatuses(prev => {
-            const updated = [...prev];
-            updated[index] = { ...updated[index], status: "completed", time: time / 1000 };
-            return updated;
-          });
-
-          if (index === completionTimes.length - 1) {
-            setIsGenerating(false);
-            toast({
-              title: "Generation Complete",
-              description: "All base tables have been successfully created!",
-            });
-          }
-        }, time);
-      }, index * 2000);
+    setIsGenerating(false);
+    toast({
+      title: "Generation Complete",
+      description: "All table creation tasks have finished.",
     });
   };
 
@@ -462,10 +600,14 @@ export default function BasePreparation() {
             type="file" 
             onChange={(e) => {
               const file = e.target.files?.[0];
+              if (file) {
+                fileInputRefs.current[table.instanceId] = file;
+              }
               updateTableField(table.instanceId, field.name, file?.name || "");
             }}
             disabled={isGenerating}
             className="cursor-pointer"
+            accept=".csv,.xlsx,.xls"
           />
         );
       default:

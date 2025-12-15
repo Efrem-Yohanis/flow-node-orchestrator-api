@@ -11,6 +11,7 @@ import { Plus, X, Rocket, Copy, RefreshCw, Eye, Database, Save } from "lucide-re
 import { saveTable } from "@/lib/savedTables";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { createTableFromSql } from "@/lib/basePreparationApi";
 
 interface SourceTable {
   id: string;
@@ -147,18 +148,20 @@ ${conditions}
       return;
     }
 
-    // Initialize statuses for all tables including the base table
+    if (!generatedSQL) {
+      toast({
+        title: "No SQL Generated",
+        description: "Please generate SQL first by clicking 'Regenerate'.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Initialize status for the final base table only
+    const finalTableName = `${baseTableName}_${postfix}`;
     const allTables: TableCreationStatus[] = [
-      ...sourceTables.map(t => ({
-        name: t.tableName,
-        status: "pending" as const,
-        completionTime: null,
-        columns: [t.column],
-        rowCount: null,
-        result: null,
-      })),
       {
-        name: `${baseTableName}_${postfix}`,
+        name: finalTableName,
         status: "pending" as const,
         completionTime: null,
         columns: [baseColumn],
@@ -170,35 +173,51 @@ ${conditions}
     setTableStatuses(allTables);
     setIsGenerating(true);
 
-    // Simulate table creation
-    for (let i = 0; i < allTables.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setTableStatuses(prev => prev.map((t, idx) => 
-        idx === i ? { ...t, status: "in_progress" as const } : t
-      ));
+    // Set status to in_progress
+    setTableStatuses(prev => prev.map(t => ({ ...t, status: "in_progress" as const })));
 
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
-      
-      const success = Math.random() > 0.1; // 90% success rate
+    try {
+      const response = await createTableFromSql({
+        table_name: finalTableName,
+        sql: generatedSQL,
+      });
+
       const now = new Date().toISOString().replace("T", " ").substring(0, 19);
       
-      setTableStatuses(prev => prev.map((t, idx) => 
-        idx === i ? {
-          ...t,
-          status: success ? "completed" as const : "failed" as const,
-          completionTime: now,
-          rowCount: success ? Math.floor(Math.random() * 500000) + 10000 : null,
-          result: success ? "Success" : "Failed",
-        } : t
-      ));
+      setTableStatuses(prev => prev.map(t => ({
+        ...t,
+        status: response.success ? "completed" as const : "failed" as const,
+        completionTime: now,
+        rowCount: response.rows_created || response.row_count || null,
+        result: response.success ? "Success" : "Failed",
+      })));
+
+      toast({
+        title: response.success ? "Table Created" : "Creation Failed",
+        description: response.success 
+          ? `Table ${response.table_name} created with ${response.rows_created || 0} rows.`
+          : response.error || "Failed to create table.",
+        variant: response.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      console.error("Error creating table from SQL:", error);
+      const now = new Date().toISOString().replace("T", " ").substring(0, 19);
+      
+      setTableStatuses(prev => prev.map(t => ({
+        ...t,
+        status: "failed" as const,
+        completionTime: now,
+        result: "Failed",
+      })));
+
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create table",
+        variant: "destructive",
+      });
     }
 
     setIsGenerating(false);
-    toast({
-      title: "Execution Complete",
-      description: "All table creation tasks have finished.",
-    });
   };
 
   const getStatusBadge = (status: TableCreationStatus["status"]) => {
