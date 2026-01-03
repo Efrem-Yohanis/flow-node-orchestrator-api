@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Users, MessageSquare, Gift, Calendar, Clock, Bell, LogOut, User, Mail, Smartphone, Radio, Send, ChevronDown, History } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Users, MessageSquare, Gift, Calendar, Clock, Mail, Smartphone, Radio, Send, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,14 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { ApproverHeader } from "@/components/approver/ApproverHeader";
+import { ApproverFooter } from "@/components/approver/ApproverFooter";
 
 // Mock campaign data
 const mockCampaign = {
@@ -121,20 +116,6 @@ const mockApprovalTrail = [
   },
 ];
 
-// Mock current approver
-const currentApprover = {
-  name: "Mike Chen",
-  role: "Technology Manager",
-  pendingCount: 3,
-};
-
-// Mock pending approvals for notification dropdown
-const pendingApprovals = [
-  { id: "camp-1", name: "Q1 Reactivation Campaign", submittedOn: "2024-01-16" },
-  { id: "camp-2", name: "February Loyalty Push", submittedOn: "2024-01-17" },
-  { id: "camp-3", name: "New User Onboarding", submittedOn: "2024-01-18" },
-];
-
 type ApprovalAction = "approve" | "reject" | "uncompleted";
 type CampaignStatus = "pending" | "uncompleted_resubmitted" | "approved" | "rejected";
 
@@ -199,65 +180,7 @@ export default function CampaignApproval() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header - Full Width, Sticky */}
-      <header className="h-14 border-b bg-card px-6 flex items-center justify-between shrink-0 sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 gradient-primary flex items-center justify-center cursor-pointer" onClick={() => navigate("/")}>
-            <span className="text-primary-foreground font-bold text-sm">M</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Notification Bell with Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="relative gap-2">
-                <Bell className="w-4 h-4 text-muted-foreground" />
-                <Badge variant="destructive" className="h-5 min-w-5 text-xs">
-                  {currentApprover.pendingCount}
-                </Badge>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <div className="px-3 py-2 border-b">
-                <p className="font-medium text-sm">Pending Approvals</p>
-              </div>
-              {pendingApprovals.map((approval) => (
-                <DropdownMenuItem key={approval.id} className="flex flex-col items-start p-3 cursor-pointer" onClick={() => navigate(`/campaigns/${approval.id}/approval`)}>
-                  <span className="font-medium text-sm">{approval.name}</span>
-                  <span className="text-xs text-muted-foreground">Submitted: {approval.submittedOn}</span>
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="justify-center text-primary" onClick={() => navigate("/list_comain_to_me")}>
-                View All Approvals
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* User Info with Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <User className="w-4 h-4 text-muted-foreground" />
-                <span>{currentApprover.name}</span>
-                <span className="text-muted-foreground text-xs">({currentApprover.role})</span>
-                <ChevronDown className="w-3 h-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <User className="w-4 h-4 mr-2" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
+      <ApproverHeader />
 
       {/* Sub-header with Back Button */}
       <div className="bg-muted/50 border-b px-6 py-4">
@@ -591,17 +514,7 @@ export default function CampaignApproval() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t bg-muted/30 px-6 py-4 text-center shrink-0">
-        <p className="text-sm text-muted-foreground">© 2026 M-Pesa Ethiopia | Campaign Approval Portal</p>
-        <div className="flex justify-center gap-4 mt-1">
-          <a href="#" className="text-xs text-muted-foreground hover:text-primary">Privacy</a>
-          <span className="text-xs text-muted-foreground">•</span>
-          <a href="#" className="text-xs text-muted-foreground hover:text-primary">Security</a>
-          <span className="text-xs text-muted-foreground">•</span>
-          <a href="#" className="text-xs text-muted-foreground hover:text-primary">Support</a>
-        </div>
-      </footer>
+      <ApproverFooter />
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}>

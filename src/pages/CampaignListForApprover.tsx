@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { Bell, User, LogOut, Search, Filter, X, Eye, Check, Clock, XCircle, AlertCircle } from "lucide-react";
+import { Search, X, Eye, Check, Clock, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -10,12 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -25,6 +18,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState } from "react";
+import { ApproverHeader } from "@/components/approver/ApproverHeader";
+import { ApproverFooter } from "@/components/approver/ApproverFooter";
 
 interface Campaign {
   id: string;
@@ -75,42 +70,7 @@ export default function CampaignListForApprover() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="h-16 border-b bg-card flex items-center justify-between px-6 sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">MP</span>
-          </div>
-          <span className="font-semibold text-lg">M-Pesa Campaign Portal</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="w-5 h-5" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
-              3
-            </Badge>
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
-                <div className="w-8 h-8 bg-primary flex items-center justify-center">
-                  <User className="w-4 h-4 text-primary-foreground" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-medium">Jane Smith</p>
-                  <p className="text-xs text-muted-foreground">Approver</p>
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
+      <ApproverHeader />
 
       {/* Main Content */}
       <main className="flex-1 p-6 space-y-6">
@@ -120,7 +80,7 @@ export default function CampaignListForApprover() {
         </div>
 
         {/* Filters */}
-        <div className="bg-card border p-4 sticky top-16 z-10">
+        <div className="bg-card border p-4 sticky top-14 z-10">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -269,17 +229,7 @@ export default function CampaignListForApprover() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t bg-card py-4 px-6">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
-          <p>© 2026 M-Pesa Ethiopia | Campaign Approval Portal</p>
-          <div className="flex gap-4">
-            <span className="hover:text-foreground cursor-pointer">Privacy</span>
-            <span className="hover:text-foreground cursor-pointer">Security</span>
-            <span className="hover:text-foreground cursor-pointer">Support</span>
-          </div>
-        </div>
-      </footer>
+      <ApproverFooter />
     </div>
   );
 }
