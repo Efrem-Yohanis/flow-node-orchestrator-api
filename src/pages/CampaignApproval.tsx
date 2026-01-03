@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Users, MessageSquare, Gift, Calendar, Clock, Bell, LogOut, User, Mail, Smartphone, Radio, Send, ChevronDown } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Users, MessageSquare, Gift, Calendar, Clock, Bell, LogOut, User, Mail, Smartphone, Radio, Send, ChevronDown, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +32,7 @@ const mockCampaign = {
   objective: "Activate dormant high-value customers through targeted incentives",
   description: "This campaign targets customers who have been inactive for 60+ days with personalized rewards.",
   owner: "John Doe",
-  status: "pending_approval",
+  status: "pending", // pending | uncompleted_resubmitted | approved | rejected
   submittedOn: "2024-01-16",
   segments: ["seg-1", "seg-2"],
   totalCustomers: 45000,
@@ -108,15 +107,18 @@ const mockChannels = [
   },
 ];
 
-const approvalSteps = [
-  { id: 1, role: "Department Manager", name: "Sarah Johnson", status: "approved", date: "2024-01-16 10:30 AM", comment: "Campaign objectives align with Q1 goals. Approved." },
-  { id: 2, role: "Technology Manager", name: "Mike Chen", status: "pending", date: null, comment: null },
-  { id: 3, role: "Operational Manager", name: "Emily Davis", status: "pending", date: null, comment: null },
-  { id: 4, role: "Chief Manager", name: "Robert Wilson", status: "pending", date: null, comment: null },
-];
-
-const approvalHistory = [
-  { role: "Department Manager", name: "Sarah Johnson", decision: "Approved", comment: "Campaign objectives align with Q1 goals. Approved.", date: "2024-01-16 10:30 AM" },
+// Mock approval trail (history of actions by logged-in approver)
+const mockApprovalTrail = [
+  { 
+    decision: "uncompleted", 
+    comment: "Please correct reward caps", 
+    date: "2024-01-12 09:40 AM" 
+  },
+  { 
+    decision: "approved", 
+    comment: "Corrections verified", 
+    date: "2024-01-18 02:15 PM" 
+  },
 ];
 
 // Mock current approver
@@ -134,6 +136,7 @@ const pendingApprovals = [
 ];
 
 type ApprovalAction = "approve" | "reject" | "uncompleted";
+type CampaignStatus = "pending" | "uncompleted_resubmitted" | "approved" | "rejected";
 
 export default function CampaignApproval() {
   const { id } = useParams();
@@ -145,9 +148,14 @@ export default function CampaignApproval() {
     action: null,
   });
 
-  // Current approver is Technology Manager (step 2)
-  const currentApproverStep = 2;
-  const isCurrentApprover = true; // In production, check against logged-in user
+  // Determine campaign status - in production this would come from API
+  const campaignStatus: CampaignStatus = mockCampaign.status as CampaignStatus;
+  
+  // Show approval section only for pending or uncompleted_resubmitted
+  const canTakeAction = campaignStatus === "pending" || campaignStatus === "uncompleted_resubmitted";
+  
+  // Get the final decision if already approved/rejected
+  const finalDecision = mockApprovalTrail.length > 0 ? mockApprovalTrail[mockApprovalTrail.length - 1] : null;
 
   const handleSubmitDecision = () => {
     if (selectedAction !== "approve" && !comment.trim()) {
@@ -173,16 +181,18 @@ export default function CampaignApproval() {
     navigate("/list_comain_to_me");
   };
 
-  const getStatusIcon = (status: string) => {
-    if (status === "approved") return <CheckCircle className="w-4 h-4 text-success" />;
-    if (status === "rejected") return <XCircle className="w-4 h-4 text-destructive" />;
+  const getDecisionIcon = (decision: string) => {
+    if (decision === "approved") return <CheckCircle className="w-4 h-4 text-success" />;
+    if (decision === "rejected") return <XCircle className="w-4 h-4 text-destructive" />;
+    if (decision === "uncompleted") return <AlertTriangle className="w-4 h-4 text-warning" />;
     return <Clock className="w-4 h-4 text-muted-foreground" />;
   };
 
-  const getStatusLabel = (status: string) => {
-    if (status === "approved") return "Approved";
-    if (status === "rejected") return "Rejected";
-    return "Pending";
+  const getDecisionColor = (decision: string) => {
+    if (decision === "approved") return "text-success";
+    if (decision === "rejected") return "text-destructive";
+    if (decision === "uncompleted") return "text-warning";
+    return "text-muted-foreground";
   };
 
   const enabledChannels = mockChannels.filter(ch => ch.enabled);
@@ -195,7 +205,7 @@ export default function CampaignApproval() {
           <div className="w-8 h-8 gradient-primary flex items-center justify-center cursor-pointer" onClick={() => navigate("/")}>
             <span className="text-primary-foreground font-bold text-sm">M</span>
           </div>
-          <span className="font-semibold text-lg">Campaign Approval</span>
+          <span className="font-semibold text-lg">Review & Submit</span>
         </div>
         <div className="flex items-center gap-4">
           {/* Notification Bell with Dropdown */}
@@ -255,264 +265,345 @@ export default function CampaignApproval() {
         </div>
       </header>
 
-      {/* Main Scrollable Content */}
-      <div className="flex-1 overflow-auto">
-        {/* Back Button Section */}
-        <div className="bg-muted/50 border-b px-6 py-4">
-          <div className="max-w-7xl mx-auto">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/list_comain_to_me")} className="gap-2 -ml-2">
-              <ArrowLeft className="w-4 h-4" />
-              Back to My Approvals
-            </Button>
-          </div>
+      {/* Sub-header with Back Button */}
+      <div className="bg-muted/50 border-b px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/list_comain_to_me")} className="gap-2 -ml-2">
+            <ArrowLeft className="w-4 h-4" />
+            Back to My Approvals
+          </Button>
+          <span className="font-medium text-lg">Review & Submit</span>
         </div>
+      </div>
 
-        {/* Main Content */}
+      {/* Main Content - 2 Column Layout */}
+      <div className="flex-1 overflow-auto">
         <div className="p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
-            {/* Campaign Summary Card - Full Width, Combined */}
-            <Card className="rounded-none border w-full">
-              <CardHeader className="pb-3 border-b">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <CheckCircle className="w-4 h-4 text-primary" />
-                  Campaign Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-6 text-sm">
-                {/* Campaign Info Section */}
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Name</span>
-                    <span className="font-medium">{mockCampaign.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type</span>
-                    <Badge variant="outline" className="capitalize rounded-none">{mockCampaign.type}</Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Objective</span>
-                    <span className="font-medium text-right max-w-[400px]">{mockCampaign.objective}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Description</span>
-                    <p className="mt-1">{mockCampaign.description}</p>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Owner</span>
-                    <span className="font-medium">{mockCampaign.owner}</span>
-                  </div>
-                </div>
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-[70%_30%] gap-6">
+              {/* Left Column - Campaign Details (70%) */}
+              <div className="space-y-6">
+                {/* Campaign Summary Card */}
+                <Card className="rounded-none border w-full">
+                  <CardHeader className="pb-3 border-b">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <CheckCircle className="w-4 h-4 text-primary" />
+                      Campaign Summary
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-6 text-sm">
+                    {/* Campaign Info Section */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Name</span>
+                        <span className="font-medium">{mockCampaign.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Type</span>
+                        <Badge variant="outline" className="capitalize rounded-none">{mockCampaign.type}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Objective</span>
+                        <span className="font-medium text-right max-w-[400px]">{mockCampaign.objective}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Description</span>
+                        <p className="mt-1">{mockCampaign.description}</p>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Owner</span>
+                        <span className="font-medium">{mockCampaign.owner}</span>
+                      </div>
+                    </div>
 
-                {/* Audience Summary Section */}
-                <div className="pt-4 border-t space-y-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <Users className="w-4 h-4 text-primary" />
-                    Audience Summary
-                  </h4>
-                  <div>
-                    <span className="text-muted-foreground">Selected Segments:</span>
-                    <ul className="mt-1 list-disc list-inside">
-                      {mockCampaign.segments.map((seg) => (
-                        <li key={seg}>{seg}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Customers</span>
-                    <span className="font-bold text-lg">{mockCampaign.totalCustomers.toLocaleString()}</span>
-                  </div>
-                </div>
+                    {/* Audience Summary Section */}
+                    <div className="pt-4 border-t space-y-3">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Users className="w-4 h-4 text-primary" />
+                        Audience Summary
+                      </h4>
+                      <div>
+                        <span className="text-muted-foreground">Selected Segments:</span>
+                        <ul className="mt-1 list-disc list-inside">
+                          {mockCampaign.segments.map((seg) => (
+                            <li key={seg}>{seg}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Total Customers</span>
+                        <span className="font-bold text-lg">{mockCampaign.totalCustomers.toLocaleString()}</span>
+                      </div>
+                    </div>
 
-                {/* Reward Summary Section */}
-                <div className="pt-4 border-t space-y-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <Gift className="w-4 h-4 text-primary" />
-                    Reward Summary
-                  </h4>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Reward Type</span>
-                    <span className="font-medium">{mockCampaign.rewardType}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Reward Value</span>
-                    <span className="font-medium">{mockCampaign.rewardValue} ETB</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Daily Cap</span>
-                    <span className="font-medium">{mockCampaign.dailyCap} ETB</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Per Customer Cap</span>
-                    <span className="font-medium">{mockCampaign.perCustomerCap} ETB</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Reward Account</span>
-                    <span className="font-medium">{mockCampaign.rewardAccount}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Estimated Total Cost</span>
-                    <span className="font-bold text-lg">{mockCampaign.estimatedCost.toLocaleString()} ETB</span>
-                  </div>
-                </div>
+                    {/* Reward Summary Section */}
+                    <div className="pt-4 border-t space-y-3">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Gift className="w-4 h-4 text-primary" />
+                        Reward Summary
+                      </h4>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Reward Type</span>
+                        <span className="font-medium">{mockCampaign.rewardType}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Reward Value</span>
+                        <span className="font-medium">{mockCampaign.rewardValue} ETB</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Daily Cap</span>
+                        <span className="font-medium">{mockCampaign.dailyCap} ETB</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Per Customer Cap</span>
+                        <span className="font-medium">{mockCampaign.perCustomerCap} ETB</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Reward Account</span>
+                        <span className="font-medium">{mockCampaign.rewardAccount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Estimated Total Cost</span>
+                        <span className="font-bold text-lg">{mockCampaign.estimatedCost.toLocaleString()} ETB</span>
+                      </div>
+                    </div>
 
-                {/* Schedule & Controls Section */}
-                <div className="pt-4 border-t space-y-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-primary" />
-                    Schedule & Controls
-                  </h4>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Schedule Type</span>
-                    <span className="font-medium">{mockCampaign.scheduleType}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Frequency Cap</span>
-                    <span className="font-medium">{mockCampaign.frequencyCap}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    {/* Schedule & Controls Section */}
+                    <div className="pt-4 border-t space-y-3">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-primary" />
+                        Schedule & Controls
+                      </h4>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Schedule Type</span>
+                        <span className="font-medium">{mockCampaign.scheduleType}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Frequency Cap</span>
+                        <span className="font-medium">{mockCampaign.frequencyCap}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            {/* Channel Cards - Full Width, Stacked Vertically */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Send className="w-5 h-5 text-primary" />
-                Channel Configuration
-              </h2>
-              
-              {enabledChannels.map((channel) => {
-                const IconComponent = channel.icon;
-                return (
-                  <Card key={channel.id} className="rounded-none border">
-                    <CardHeader className="pb-3 border-b">
-                      <CardTitle className="flex items-center justify-between text-base">
-                        <div className="flex items-center gap-2">
-                          <IconComponent className="w-4 h-4 text-primary" />
-                          Channel: {channel.name}
-                        </div>
-                        <Badge className="bg-success/10 text-success border-success/20 rounded-none">Enabled</Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4 space-y-4">
-                      {/* Languages Section */}
-                      {channel.languages && channel.languages.length > 0 && (
-                        <div>
-                          <p className="font-medium text-sm mb-3">Languages:</p>
-                          <div className="space-y-3">
-                            {channel.languages.map((lang) => (
-                              <div key={lang.code} className="bg-muted/50 p-3 border-l-4 border-primary">
-                                <p className="text-sm font-medium text-primary">{lang.name}</p>
-                                <p className="text-sm mt-1">{lang.content}</p>
+                {/* Channel Cards */}
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <Send className="w-5 h-5 text-primary" />
+                    Channel Configuration
+                  </h2>
+                  
+                  {enabledChannels.map((channel) => {
+                    const IconComponent = channel.icon;
+                    return (
+                      <Card key={channel.id} className="rounded-none border">
+                        <CardHeader className="pb-3 border-b">
+                          <CardTitle className="flex items-center justify-between text-base">
+                            <div className="flex items-center gap-2">
+                              <IconComponent className="w-4 h-4 text-primary" />
+                              Channel: {channel.name}
+                            </div>
+                            <Badge className="bg-success/10 text-success border-success/20 rounded-none">Enabled</Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4 space-y-4">
+                          {/* Languages Section */}
+                          {channel.languages && channel.languages.length > 0 && (
+                            <div>
+                              <p className="font-medium text-sm mb-3">Languages:</p>
+                              <div className="space-y-3">
+                                {channel.languages.map((lang) => (
+                                  <div key={lang.code} className="bg-muted/50 p-3 border-l-4 border-primary">
+                                    <p className="text-sm font-medium text-primary">{lang.name}</p>
+                                    <p className="text-sm mt-1">{lang.content}</p>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
+                            </div>
+                          )}
+
+                          {/* Email specific content */}
+                          {channel.id === "email" && channel.subject && (
+                            <div>
+                              <p className="font-medium text-sm mb-2">Subject:</p>
+                              <p className="text-sm bg-muted/50 p-2">{channel.subject}</p>
+                              <p className="font-medium text-sm mb-2 mt-3">Body:</p>
+                              <div className="text-sm bg-muted/50 p-2" dangerouslySetInnerHTML={{ __html: channel.body || "" }} />
+                            </div>
+                          )}
+
+                          {/* Channel Controls */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Cap per Channel</span>
+                              <p className="font-medium">{channel.capPerChannel.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Retry on Failure</span>
+                              <p className="font-medium">{channel.retryOnFailure ? "Yes" : "No"}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Channel Priority</span>
+                              <p className="font-medium">{channel.priority}</p>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
 
-                      {/* Email specific content */}
-                      {channel.id === "email" && channel.subject && (
-                        <div>
-                          <p className="font-medium text-sm mb-2">Subject:</p>
-                          <p className="text-sm bg-muted/50 p-2">{channel.subject}</p>
-                          <p className="font-medium text-sm mb-2 mt-3">Body:</p>
-                          <div className="text-sm bg-muted/50 p-2" dangerouslySetInnerHTML={{ __html: channel.body || "" }} />
+                {/* Approval Section - Only if can take action */}
+                {canTakeAction && (
+                  <Card className="rounded-none border">
+                    <CardHeader className="pb-3 border-b">
+                      <CardTitle className="text-base">Approval Decision</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <div className="space-y-6">
+                        {/* Comment Section */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            Approval Comment <span className="text-destructive">*</span>
+                          </Label>
+                          <Textarea
+                            placeholder="Enter your comment (required for Reject/Uncompleted)"
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value.slice(0, 500))}
+                            rows={4}
+                            className="resize-none rounded-none w-full"
+                          />
+                          <p className="text-xs text-muted-foreground text-right">{comment.length} / 500 characters</p>
                         </div>
-                      )}
 
-                      {/* Channel Controls */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Cap per Channel</span>
-                          <p className="font-medium">{channel.capPerChannel.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Retry on Failure</span>
-                          <p className="font-medium">{channel.retryOnFailure ? "Yes" : "No"}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Channel Priority</span>
-                          <p className="font-medium">{channel.priority}</p>
+                        {/* Decision Section */}
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Decision:</Label>
+                            <RadioGroup
+                              value={selectedAction || ""}
+                              onValueChange={(value) => setSelectedAction(value as ApprovalAction)}
+                              className="flex flex-wrap gap-6"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="approve" id="approve" />
+                                <Label htmlFor="approve" className="flex items-center gap-1 cursor-pointer text-success">
+                                  <CheckCircle className="w-4 h-4" />
+                                  Approve
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="reject" id="reject" />
+                                <Label htmlFor="reject" className="flex items-center gap-1 cursor-pointer text-destructive">
+                                  <XCircle className="w-4 h-4" />
+                                  Reject
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="uncompleted" id="uncompleted" />
+                                <Label htmlFor="uncompleted" className="flex items-center gap-1 cursor-pointer text-warning">
+                                  <AlertTriangle className="w-4 h-4" />
+                                  Uncompleted
+                                </Label>
+                              </div>
+                            </RadioGroup>
+                          </div>
+
+                          <Button
+                            onClick={handleSubmitDecision}
+                            disabled={!selectedAction || (selectedAction !== "approve" && !comment.trim())}
+                            className="w-full gradient-primary text-primary-foreground rounded-none h-11"
+                          >
+                            Submit
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                );
-              })}
-            </div>
+                )}
 
+                {/* Read-only status display when already approved/rejected */}
+                {!canTakeAction && finalDecision && (
+                  <Card className="rounded-none border">
+                    <CardContent className="py-6">
+                      <div className="flex items-center justify-center gap-3">
+                        {getDecisionIcon(finalDecision.decision)}
+                        <span className={`font-medium ${getDecisionColor(finalDecision.decision)}`}>
+                          Status: {finalDecision.decision.charAt(0).toUpperCase() + finalDecision.decision.slice(1)} on {finalDecision.date}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Right Column - Approval Trail (30%) */}
+              <div className="lg:sticky lg:top-20 lg:self-start">
+                <Card className="rounded-none border">
+                  <CardHeader className="pb-3 border-b">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <History className="w-4 h-4 text-primary" />
+                      Approval History (Your Actions)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    {mockApprovalTrail.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No previous actions on this campaign
+                      </p>
+                    ) : (
+                      <div className="relative">
+                        {/* Timeline line */}
+                        <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-border" />
+                        
+                        {/* Timeline items */}
+                        <div className="space-y-6">
+                          {mockApprovalTrail.map((item, index) => (
+                            <div key={index} className="relative pl-6">
+                              {/* Timeline dot */}
+                              <div className={`absolute left-0 top-1 w-4 h-4 rounded-full border-2 bg-background flex items-center justify-center ${
+                                item.decision === "approved" 
+                                  ? "border-success" 
+                                  : item.decision === "rejected"
+                                  ? "border-destructive"
+                                  : "border-warning"
+                              }`}>
+                                <div className={`w-2 h-2 rounded-full ${
+                                  item.decision === "approved" 
+                                    ? "bg-success" 
+                                    : item.decision === "rejected"
+                                    ? "bg-destructive"
+                                    : "bg-warning"
+                                }`} />
+                              </div>
+                              
+                              {/* Content */}
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  {getDecisionIcon(item.decision)}
+                                  <span className={`font-medium text-sm capitalize ${getDecisionColor(item.decision)}`}>
+                                    {item.decision}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Comment: "{item.comment}"
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Date: {item.date}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Sticky Approval Action Bar - Full Width */}
-      {isCurrentApprover && (
-        <div className="sticky bottom-0 border-t bg-card p-6 shadow-lg shrink-0 z-40">
-          <div className="max-w-7xl mx-auto">
-            <Card className="rounded-none border">
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Comment Section */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Approval Comment <span className="text-destructive">*</span>
-                    </Label>
-                    <Textarea
-                      placeholder="Enter your comment (required for Reject/Uncompleted)"
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value.slice(0, 500))}
-                      rows={3}
-                      className="resize-none rounded-none"
-                    />
-                    <p className="text-xs text-muted-foreground text-right">{comment.length} / 500 characters</p>
-                  </div>
-
-                  {/* Decision Section */}
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Decision:</Label>
-                      <RadioGroup
-                        value={selectedAction || ""}
-                        onValueChange={(value) => setSelectedAction(value as ApprovalAction)}
-                        className="flex flex-wrap gap-4"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="approve" id="approve" />
-                          <Label htmlFor="approve" className="flex items-center gap-1 cursor-pointer text-success">
-                            <CheckCircle className="w-4 h-4" />
-                            Approve
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="reject" id="reject" />
-                          <Label htmlFor="reject" className="flex items-center gap-1 cursor-pointer text-destructive">
-                            <XCircle className="w-4 h-4" />
-                            Reject
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="uncompleted" id="uncompleted" />
-                          <Label htmlFor="uncompleted" className="flex items-center gap-1 cursor-pointer text-warning">
-                            <AlertTriangle className="w-4 h-4" />
-                            Uncompleted
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-
-                    <Button
-                      onClick={handleSubmitDecision}
-                      disabled={!selectedAction || (selectedAction !== "approve" && !comment.trim())}
-                      className="w-full gradient-primary text-primary-foreground rounded-none h-11"
-                    >
-                      Submit Decision
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
 
       {/* Footer */}
       <footer className="border-t bg-muted/30 px-6 py-4 text-center shrink-0">
