@@ -22,11 +22,11 @@ import { ApproverFooter } from "@/components/approver/ApproverFooter";
 // Mock campaign data
 const mockCampaign = {
   id: "camp-1",
-  name: "Q1 Reactivation Campaign",
+  name: "Meskel Reactivation Campaign",
   type: "incentive",
   objective: "Activate dormant high-value customers through targeted incentives",
   description: "This campaign targets customers who have been inactive for 60+ days with personalized rewards.",
-  owner: "John Doe",
+  owner: "Abebe Kebede",
   status: "pending", // pending | uncompleted_resubmitted | approved | rejected
   submittedOn: "2024-01-16",
   segments: ["seg-1", "seg-2"],
