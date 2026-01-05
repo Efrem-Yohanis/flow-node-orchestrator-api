@@ -57,7 +57,7 @@ export function ReviewSubmitStep({ formData }: ReviewSubmitStepProps) {
         <p className="text-sm text-muted-foreground">Verify all details before submitting for approval</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
         {/* Campaign Summary */}
         <div className="border p-4 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b">
@@ -122,8 +122,8 @@ export function ReviewSubmitStep({ formData }: ReviewSubmitStepProps) {
           </div>
         </div>
 
-        {/* Channel Configuration - Full Width */}
-        <div className="border p-4 space-y-4 lg:col-span-2">
+        {/* Channel Configuration */}
+        <div className="border p-4 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b">
             <MessageSquare className="w-4 h-4 text-primary" />
             <h3 className="font-semibold">Channel Configuration</h3>
@@ -366,7 +366,7 @@ export function ReviewSubmitStep({ formData }: ReviewSubmitStepProps) {
         </div>
 
         {/* Schedule Summary */}
-        <div className="border p-4 space-y-4 lg:col-span-2">
+        <div className="border p-4 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b">
             <Calendar className="w-4 h-4 text-primary" />
             <h3 className="font-semibold">Schedule & Controls</h3>
