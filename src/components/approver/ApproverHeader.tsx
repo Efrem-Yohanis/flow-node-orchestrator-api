@@ -12,15 +12,15 @@ import {
 
 // Mock current approver
 const currentApprover = {
-  name: "Mike Chen",
+  name: "Abebe Kebede",
   role: "Technology Manager",
   pendingCount: 3,
 };
 
 // Mock pending approvals for notification dropdown
 const pendingApprovals = [
-  { id: "camp-1", name: "Q1 Reactivation Campaign", submittedOn: "2024-01-16" },
-  { id: "camp-2", name: "February Loyalty Push", submittedOn: "2024-01-17" },
+  { id: "camp-1", name: "Meskel Season Rewards", submittedOn: "2024-01-16" },
+  { id: "camp-2", name: "Timket Loyalty Push", submittedOn: "2024-01-17" },
   { id: "camp-3", name: "New User Onboarding", submittedOn: "2024-01-18" },
 ];
 

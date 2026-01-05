@@ -30,13 +30,13 @@ interface Campaign {
 }
 
 const mockCampaigns: Campaign[] = [
-  { id: "1", name: "Q1 Reactivation Campaign", type: "Incentive", status: "pending", submittedDate: "2026-01-02" },
-  { id: "2", name: "Holiday Bonus Campaign", type: "Informational", status: "approved", submittedDate: "2026-01-01" },
-  { id: "3", name: "New Year Cashback", type: "Incentive", status: "rejected", submittedDate: "2025-12-30" },
+  { id: "1", name: "Meskel Reactivation Campaign", type: "Incentive", status: "pending", submittedDate: "2026-01-02" },
+  { id: "2", name: "Timket Bonus Campaign", type: "Informational", status: "approved", submittedDate: "2026-01-01" },
+  { id: "3", name: "Enkutatash Cashback", type: "Incentive", status: "rejected", submittedDate: "2025-12-30" },
   { id: "4", name: "Customer Onboarding", type: "Informational", status: "pending", submittedDate: "2026-01-03" },
-  { id: "5", name: "Loyalty Reward Program", type: "Incentive", status: "uncompleted", submittedDate: "2025-12-28" },
-  { id: "6", name: "Flash Sale Alert", type: "Informational", status: "approved", submittedDate: "2025-12-25" },
-  { id: "7", name: "Win-back High Value", type: "Incentive", status: "pending", submittedDate: "2026-01-02" },
+  { id: "5", name: "Fasika Loyalty Program", type: "Incentive", status: "uncompleted", submittedDate: "2025-12-28" },
+  { id: "6", name: "Genna Sale Alert", type: "Informational", status: "approved", submittedDate: "2025-12-25" },
+  { id: "7", name: "High Value Win-back", type: "Incentive", status: "pending", submittedDate: "2026-01-02" },
   { id: "8", name: "Monthly Statement Reminder", type: "Informational", status: "approved", submittedDate: "2025-12-20" },
 ];
 
