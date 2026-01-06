@@ -295,37 +295,39 @@ export function OverviewTab({ campaign }: OverviewTabProps) {
         );
       })}
 
-      {/* Approval History Card */}
-      <div className="bg-card border p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <History className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold text-lg">Approval History (Your Actions)</h3>
-        </div>
-        
-        <div className="space-y-4 max-h-64 overflow-y-auto">
-          {approvalHistory.map((entry, index) => (
-            <div key={entry.id} className="flex gap-3">
-              <div className="flex flex-col items-center">
-                {getApprovalStatusIcon(entry.status)}
-                {index < approvalHistory.length - 1 && (
-                  <div className="w-px h-full bg-border mt-1" />
-                )}
+      {/* Approval History Card - Not shown for Draft campaigns */}
+      {campaign.status !== "Draft" && (
+        <div className="bg-card border p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <History className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold text-lg">Approval History (Your Actions)</h3>
+          </div>
+          
+          <div className="space-y-4 max-h-64 overflow-y-auto">
+            {approvalHistory.map((entry, index) => (
+              <div key={entry.id} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  {getApprovalStatusIcon(entry.status)}
+                  {index < approvalHistory.length - 1 && (
+                    <div className="w-px h-full bg-border mt-1" />
+                  )}
+                </div>
+                <div className="flex-1 pb-4">
+                  <p className={`font-medium ${getApprovalStatusColor(entry.status)}`}>
+                    {entry.status}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Comment: "{entry.comment}"
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Date: {entry.date}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1 pb-4">
-                <p className={`font-medium ${getApprovalStatusColor(entry.status)}`}>
-                  {entry.status}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Comment: "{entry.comment}"
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Date: {entry.date}
-                </p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
