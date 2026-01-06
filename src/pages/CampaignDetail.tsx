@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Play, Pause, Send, Trash2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +11,17 @@ import { RewardsTab } from "@/components/campaign/tabs/RewardsTab";
 import { PerformanceTab } from "@/components/campaign/tabs/PerformanceTab";
 import { LogsTab } from "@/components/campaign/tabs/LogsTab";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type CampaignStatus = "Draft" | "Pending_Approval" | "Scheduled" | "Running" | "Paused" | "Completed" | "Failed";
 
@@ -83,23 +94,16 @@ const getTypeColor = (type: string) => {
   }
 };
 
-// Tab visibility based on status
+// Tab visibility based on status - Audience, Channels, Rewards, Performance only for Running, Paused, Completed
 const getVisibleTabs = (status: CampaignStatus) => {
-  const alwaysVisible = ["overview", "logs"];
+  const baseTabs = ["overview", "logs"];
   const extendedTabs = ["audience", "channels", "rewards", "performance"];
   
-  switch (status) {
-    case "Draft":
-    case "Pending_Approval":
-    case "Scheduled":
-      return alwaysVisible;
-    case "Running":
-    case "Paused":
-    case "Completed":
-      return [...alwaysVisible.slice(0, 1), ...extendedTabs, alwaysVisible[1]];
-    default:
-      return alwaysVisible;
+  if (status === "Running" || status === "Paused" || status === "Completed") {
+    return ["overview", ...extendedTabs, "logs"];
   }
+  
+  return baseTabs;
 };
 
 const tabLabels: Record<string, string> = {
@@ -115,14 +119,139 @@ export default function CampaignDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   
   const campaign = campaignData;
   const visibleTabs = getVisibleTabs(campaign.status);
+  const status = campaign.status;
 
   // Ensure active tab is valid for current status
   if (!visibleTabs.includes(activeTab)) {
     setActiveTab("overview");
   }
+
+  const handleSubmitForApproval = () => console.log("Submitting for approval...");
+  const handleDelete = () => { console.log("Deleting..."); setDeleteDialogOpen(false); };
+  const handleStartCampaign = () => console.log("Starting campaign...");
+  const handleCancel = () => { console.log("Cancelling..."); setCancelDialogOpen(false); };
+  const handleStartNow = () => console.log("Starting now...");
+  const handlePause = () => console.log("Pausing...");
+  const handleResume = () => console.log("Resuming...");
+
+  const renderActionButtons = () => {
+    switch (status) {
+      case "Draft":
+        return (
+          <>
+            <Button onClick={handleSubmitForApproval} className="gap-2">
+              <Send className="w-4 h-4" />
+              Submit for Approval
+            </Button>
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this campaign? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        );
+      case "Pending_Approval":
+        return (
+          <>
+            <Button onClick={handleStartCampaign} className="gap-2">
+              <Play className="w-4 h-4" />
+              Start Campaign
+            </Button>
+            <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2">
+                  <XCircle className="w-4 h-4" />
+                  Cancel
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancel Campaign</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to cancel this campaign?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Close</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Cancel Campaign
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        );
+      case "Scheduled":
+        return (
+          <>
+            <Button onClick={handleStartNow} className="gap-2">
+              <Play className="w-4 h-4" />
+              Start Now
+            </Button>
+            <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2">
+                  <XCircle className="w-4 h-4" />
+                  Cancel
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancel Campaign</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to cancel this scheduled campaign?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Close</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Cancel Campaign
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        );
+      case "Running":
+        return (
+          <Button variant="secondary" onClick={handlePause} className="gap-2">
+            <Pause className="w-4 h-4" />
+            Pause
+          </Button>
+        );
+      case "Paused":
+        return (
+          <Button onClick={handleResume} className="gap-2">
+            <Play className="w-4 h-4" />
+            Resume
+          </Button>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -144,7 +273,7 @@ export default function CampaignDetail() {
       <div className="bg-card border p-6">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
           {/* Left Side - Campaign Info */}
-          <div className="space-y-4">
+          <div className="space-y-4 flex-1">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">{campaign.name}</h1>
               <Badge variant="outline" className={cn("font-medium", getStatusColor(campaign.status))}>
@@ -180,17 +309,22 @@ export default function CampaignDetail() {
               <p className="text-sm mt-1">{campaign.objective}</p>
             </div>
           </div>
+
+          {/* Right Side - Action Buttons */}
+          <div className="flex flex-wrap gap-2 lg:flex-shrink-0">
+            {renderActionButtons()}
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-muted/50 p-1 h-auto flex-wrap w-full justify-start">
+        <TabsList className="bg-muted/50 p-1 h-auto flex-wrap">
           {visibleTabs.map((tab) => (
             <TabsTrigger 
               key={tab} 
               value={tab} 
-              className="data-[state=active]:bg-background flex-1"
+              className="data-[state=active]:bg-background"
             >
               {tabLabels[tab]}
             </TabsTrigger>
