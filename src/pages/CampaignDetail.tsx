@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Pause, Play, Square, Copy, Download, AlertTriangle } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CampaignKPIs } from "@/components/campaign/CampaignKPIs";
 import { OverviewTab } from "@/components/campaign/tabs/OverviewTab";
 import { AudienceTab } from "@/components/campaign/tabs/AudienceTab";
 import { ChannelsTab } from "@/components/campaign/tabs/ChannelsTab";
@@ -13,15 +12,18 @@ import { PerformanceTab } from "@/components/campaign/tabs/PerformanceTab";
 import { LogsTab } from "@/components/campaign/tabs/LogsTab";
 import { cn } from "@/lib/utils";
 
+type CampaignStatus = "Draft" | "Pending_Approval" | "Scheduled" | "Running" | "Paused" | "Completed" | "Failed";
+
 // Mock campaign data
 const campaignData = {
   id: "CMP-2024-001",
-  name: "Festive Season Rewards",
+  name: "Meskel Reactivation Campaign",
   type: "Incentive",
-  objective: "Increase transaction frequency among high-value customers during festive season",
-  owner: "Sarah M.",
+  objective: "Activate dormant high-value customers through targeted incentives",
+  description: "This campaign targets customers who have been inactive for 60+ days with personalized rewards.",
+  owner: "Abebe Kebede",
   createdDate: "2024-01-01",
-  status: "Running" as "Draft" | "Scheduled" | "Running" | "Paused" | "Completed" | "Failed",
+  status: "Running" as CampaignStatus,
   segment: {
     name: "High Value Active",
     id: "seg-001",
@@ -55,6 +57,8 @@ const getStatusColor = (status: string) => {
       return "bg-warning/10 text-warning border-warning/20";
     case "Draft":
       return "bg-muted text-muted-foreground border-muted";
+    case "Pending_Approval":
+      return "bg-info/10 text-info border-info/20";
     case "Paused":
       return "bg-warning/10 text-warning border-warning/20";
     case "Failed":
@@ -79,15 +83,46 @@ const getTypeColor = (type: string) => {
   }
 };
 
+// Tab visibility based on status
+const getVisibleTabs = (status: CampaignStatus) => {
+  const alwaysVisible = ["overview", "logs"];
+  const extendedTabs = ["audience", "channels", "rewards", "performance"];
+  
+  switch (status) {
+    case "Draft":
+    case "Pending_Approval":
+    case "Scheduled":
+      return alwaysVisible;
+    case "Running":
+    case "Paused":
+    case "Completed":
+      return [...alwaysVisible.slice(0, 1), ...extendedTabs, alwaysVisible[1]];
+    default:
+      return alwaysVisible;
+  }
+};
+
+const tabLabels: Record<string, string> = {
+  overview: "Overview",
+  audience: "Audience",
+  channels: "Channels",
+  rewards: "Rewards",
+  performance: "Performance",
+  logs: "Logs & Audit",
+};
+
 export default function CampaignDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   
   const campaign = campaignData;
-  const isRunning = campaign.status === "Running";
-  const isPaused = campaign.status === "Paused";
-  const isDraft = campaign.status === "Draft";
+  const visibleTabs = getVisibleTabs(campaign.status);
+
+  // Ensure active tab is valid for current status
+  if (!visibleTabs.includes(activeTab)) {
+    setActiveTab("overview");
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -113,7 +148,7 @@ export default function CampaignDetail() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">{campaign.name}</h1>
               <Badge variant="outline" className={cn("font-medium", getStatusColor(campaign.status))}>
-                {campaign.status}
+                {campaign.status.replace("_", " ")}
               </Badge>
             </div>
             
@@ -145,74 +180,50 @@ export default function CampaignDetail() {
               <p className="text-sm mt-1">{campaign.objective}</p>
             </div>
           </div>
-
-          {/* Right Side - Actions */}
-          <div className="flex flex-wrap gap-2">
-            {isRunning && (
-              <Button variant="outline" className="gap-2">
-                <Pause className="w-4 h-4" />
-                Pause
-              </Button>
-            )}
-            {isPaused && (
-              <Button variant="outline" className="gap-2">
-                <Play className="w-4 h-4" />
-                Resume
-              </Button>
-            )}
-            {(isRunning || isPaused) && (
-              <Button variant="outline" className="gap-2 text-destructive hover:text-destructive">
-                <Square className="w-4 h-4" />
-                Stop
-              </Button>
-            )}
-          </div>
         </div>
       </div>
 
-
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-muted/50 p-1 h-auto flex-wrap">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-background">
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="audience" className="data-[state=active]:bg-background">
-            Audience
-          </TabsTrigger>
-          <TabsTrigger value="channels" className="data-[state=active]:bg-background">
-            Channels
-          </TabsTrigger>
-          <TabsTrigger value="rewards" className="data-[state=active]:bg-background">
-            Rewards
-          </TabsTrigger>
-          <TabsTrigger value="performance" className="data-[state=active]:bg-background">
-            Performance
-          </TabsTrigger>
-          <TabsTrigger value="logs" className="data-[state=active]:bg-background">
-            Logs & Audit
-          </TabsTrigger>
+        <TabsList className="bg-muted/50 p-1 h-auto flex-wrap w-full justify-start">
+          {visibleTabs.map((tab) => (
+            <TabsTrigger 
+              key={tab} 
+              value={tab} 
+              className="data-[state=active]:bg-background flex-1"
+            >
+              {tabLabels[tab]}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="overview">
           <OverviewTab campaign={campaign} />
         </TabsContent>
 
-        <TabsContent value="audience">
-          <AudienceTab />
-        </TabsContent>
+        {visibleTabs.includes("audience") && (
+          <TabsContent value="audience">
+            <AudienceTab />
+          </TabsContent>
+        )}
 
-        <TabsContent value="channels">
-          <ChannelsTab />
-        </TabsContent>
+        {visibleTabs.includes("channels") && (
+          <TabsContent value="channels">
+            <ChannelsTab />
+          </TabsContent>
+        )}
 
-        <TabsContent value="rewards">
-          <RewardsTab />
-        </TabsContent>
+        {visibleTabs.includes("rewards") && (
+          <TabsContent value="rewards">
+            <RewardsTab />
+          </TabsContent>
+        )}
 
-        <TabsContent value="performance">
-          <PerformanceTab />
-        </TabsContent>
+        {visibleTabs.includes("performance") && (
+          <TabsContent value="performance">
+            <PerformanceTab />
+          </TabsContent>
+        )}
 
         <TabsContent value="logs">
           <LogsTab />
