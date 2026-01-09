@@ -115,7 +115,6 @@ export function CustomerListTable({ filters, onExport }: CustomerListTableProps)
                 <TableHead className="font-semibold text-right">TXN Count (30D)</TableHead>
                 <TableHead className="font-semibold text-right">TXN Value (30D)</TableHead>
                 <TableHead className="font-semibold">Value Tier</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
                 <TableHead className="font-semibold">Churn Risk</TableHead>
               </TableRow>
             </TableHeader>
@@ -132,11 +131,6 @@ export function CustomerListTable({ filters, onExport }: CustomerListTableProps)
                   <TableCell>
                     <Badge variant="outline" className={cn("font-medium", getValueTierColor(customer.valueTier))}>
                       {customer.valueTier}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={cn("font-medium", getStatusColor(customer.status))}>
-                      {customer.status}
                     </Badge>
                   </TableCell>
                   <TableCell>

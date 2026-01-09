@@ -4,10 +4,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Segmentation from "./pages/Segmentation";
 import SegmentDetail from "./pages/SegmentDetail";
 import SegmentCreation from "./pages/SegmentCreation";
+import SegmentEdit from "./pages/SegmentEdit";
 import Campaigns from "./pages/Campaigns";
 import CampaignCreate from "./pages/CampaignCreate";
 import CampaignDetail from "./pages/CampaignDetail";
@@ -38,6 +41,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           {/* Standalone pages - no sidebar/header */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/campaigns/:id/approval" element={<CampaignApproval />} />
           <Route path="/list_comain_to_me" element={<CampaignListForApprover />} />
           
@@ -51,6 +56,7 @@ const App = () => (
                   <Route path="/segmentation" element={<Segmentation />} />
                   <Route path="/segmentation/create" element={<SegmentCreation />} />
                   <Route path="/segmentation/:id" element={<SegmentDetail />} />
+                  <Route path="/segmentation/:id/edit" element={<SegmentEdit />} />
                   <Route path="/campaigns" element={<Campaigns />} />
                   <Route path="/campaigns/create" element={<CampaignCreate />} />
                   <Route path="/campaigns/:id" element={<CampaignDetail />} />
