@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Play, HelpCircle } from "lucide-react";
+import { ArrowLeft, Play, HelpCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useSegmentDetail, useUpdateSegment } from "@/hooks/useSegments";
+import type { SegmentCreateRequest, SegmentFilters } from "@/services/segmentApi";
 
 interface FilterState {
   lastActivity: string;
@@ -45,43 +47,71 @@ interface FilterState {
   valueTier: string;
 }
 
-// Mock existing segment data
-const existingSegmentData = {
-  id: 1,
-  name: "High Value Active Users",
-  description: "Users with high transaction values",
-  autoRefresh: true,
-  refreshInterval: "daily",
-  filters: {
-    lastActivity: "30",
-    transactionCountMin: "10",
-    transactionCountMax: "",
-    transactionValueMin: "5000",
-    transactionValueMax: "",
-    rewardReceived: "",
-    churnRisk: "",
-    region: "",
-    city: "",
-    gender: "",
-    ageGroup: "",
-    kycLevel: "",
-    deviceType: "",
-    valueTier: "high",
-  },
-  ruleLogic: "AND" as const,
+const initialFilters: FilterState = {
+  lastActivity: "",
+  transactionCountMin: "",
+  transactionCountMax: "",
+  transactionValueMin: "",
+  transactionValueMax: "",
+  rewardReceived: "",
+  churnRisk: "",
+  region: "",
+  city: "",
+  gender: "",
+  ageGroup: "",
+  kycLevel: "",
+  deviceType: "",
+  valueTier: "",
 };
 
 export default function SegmentEdit() {
   const navigate = useNavigate();
   const { id } = useParams();
   
-  const [segmentName, setSegmentName] = useState(existingSegmentData.name);
-  const [description, setDescription] = useState(existingSegmentData.description);
-  const [autoRefresh, setAutoRefresh] = useState(existingSegmentData.autoRefresh);
-  const [refreshInterval, setRefreshInterval] = useState(existingSegmentData.refreshInterval);
-  const [filters, setFilters] = useState<FilterState>(existingSegmentData.filters);
-  const [ruleLogic, setRuleLogic] = useState<"AND" | "OR">(existingSegmentData.ruleLogic);
+  const [segmentName, setSegmentName] = useState("");
+  const [description, setDescription] = useState("");
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState("daily");
+  const [filters, setFilters] = useState<FilterState>(initialFilters);
+  const [ruleLogic, setRuleLogic] = useState<"AND" | "OR">("AND");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const { data, isLoading } = useSegmentDetail(id || "");
+  const updateSegmentMutation = useUpdateSegment(id || "");
+
+  // Populate form with existing segment data
+  useEffect(() => {
+    if (data?.segment) {
+      const segment = data.segment;
+      setSegmentName(segment.name || "");
+      setDescription(segment.description || "");
+      
+      // Extract filters from criteria if available
+      const criteria = segment.criteria || {};
+      const behavioral = criteria.behavioral || {};
+      const demographic = criteria.demographic || {};
+      const value = criteria.value || {};
+      
+      setFilters({
+        lastActivity: behavioral.lastActivityDays?.toString() || "",
+        transactionCountMin: behavioral.transactionCount?.min?.toString() || "",
+        transactionCountMax: behavioral.transactionCount?.max?.toString() || "",
+        transactionValueMin: behavioral.transactionValue?.min?.toString() || "",
+        transactionValueMax: behavioral.transactionValue?.max?.toString() || "",
+        rewardReceived: behavioral.rewardReceived || "",
+        churnRisk: behavioral.churnRisk || "",
+        region: demographic.region || "",
+        city: demographic.city || "",
+        gender: demographic.gender || "",
+        ageGroup: demographic.ageGroup || "",
+        kycLevel: demographic.kycLevel || "",
+        deviceType: demographic.deviceType || "",
+        valueTier: value.tier || "",
+      });
+      
+      setRuleLogic(criteria.rule_logic || "AND");
+    }
+  }, [data]);
 
   const updateFilter = (key: keyof FilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -101,15 +131,68 @@ export default function SegmentEdit() {
     return rules.length > 0 ? rules.join(` ${ruleLogic} `) : "No filters applied";
   };
 
+  const buildApiPayload = (): SegmentCreateRequest => {
+    const apiFilters: SegmentFilters = {
+      behavioral: {
+        lastActivityDays: filters.lastActivity ? parseInt(filters.lastActivity) : null,
+        transactionCount: {
+          min: filters.transactionCountMin ? parseInt(filters.transactionCountMin) : null,
+          max: filters.transactionCountMax ? parseInt(filters.transactionCountMax) : null,
+        },
+        transactionValue: {
+          min: filters.transactionValueMin ? parseInt(filters.transactionValueMin) : null,
+          max: filters.transactionValueMax ? parseInt(filters.transactionValueMax) : null,
+        },
+        rewardReceived: filters.rewardReceived || null,
+        churnRisk: filters.churnRisk || null,
+      },
+      demographic: {
+        region: filters.region || null,
+        city: filters.city || null,
+        gender: filters.gender || null,
+        ageGroup: filters.ageGroup || null,
+        kycLevel: filters.kycLevel || null,
+        deviceType: filters.deviceType || null,
+      },
+      value: {
+        tier: filters.valueTier || null,
+      },
+    };
+
+    return {
+      name: segmentName,
+      description,
+      config: {
+        autoRefresh,
+        refreshInterval,
+        ruleLogic,
+        status: "active",
+      },
+      filters: apiFilters,
+    };
+  };
+
   const handleSaveAndActivate = () => {
     setShowConfirmModal(true);
   };
 
-  const confirmActivation = () => {
-    console.log("Saving segment...");
-    setShowConfirmModal(false);
-    navigate(`/segmentation/${id}`);
+  const confirmActivation = async () => {
+    try {
+      await updateSegmentMutation.mutateAsync(buildApiPayload());
+      setShowConfirmModal(false);
+      navigate(`/segmentation/${id}`);
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -406,8 +489,16 @@ export default function SegmentEdit() {
 
       {/* Save / Activate Section */}
       <div className="flex items-center justify-end gap-3 pt-4 border-t">
-        <Button onClick={handleSaveAndActivate} className="gap-2">
-          <Play className="w-4 h-4" />
+        <Button 
+          onClick={handleSaveAndActivate} 
+          className="gap-2"
+          disabled={!segmentName || updateSegmentMutation.isPending}
+        >
+          {updateSegmentMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Play className="w-4 h-4" />
+          )}
           Save & Activate
         </Button>
       </div>
@@ -441,7 +532,16 @@ export default function SegmentEdit() {
             <Button variant="outline" onClick={() => setShowConfirmModal(false)}>
               Cancel
             </Button>
-            <Button onClick={confirmActivation}>
+            <Button 
+              onClick={confirmActivation} 
+              className="gap-2"
+              disabled={updateSegmentMutation.isPending}
+            >
+              {updateSegmentMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )}
               Confirm & Save
             </Button>
           </DialogFooter>
