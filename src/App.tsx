@@ -19,6 +19,7 @@ import CampaignListForApprover from "./pages/CampaignListForApprover";
 import AIInsights from "./pages/AIInsights";
 import Customer360 from "./pages/Customer360";
 import Reports from "./pages/Reports";
+import ReportCreate from "./pages/ReportCreate";
 import RewardAccountManagement from "./pages/RewardAccountManagement";
 import Configuration from "./pages/Configuration";
 import MpesaCoreDetail from "./pages/configuration/MpesaCoreDetail";
@@ -29,6 +30,12 @@ import RewardAccountDetail from "./pages/configuration/RewardAccountDetail";
 import EmailServiceDetail from "./pages/configuration/EmailServiceDetail";
 import IvrConfigDetail from "./pages/configuration/IvrConfigDetail";
 import DatabaseDetail from "./pages/configuration/DatabaseDetail";
+import UserManagement from "./pages/admin/UserManagement";
+import AddUser from "./pages/admin/AddUser";
+import EditUser from "./pages/admin/EditUser";
+import ManageRoles from "./pages/admin/ManageRoles";
+import RolePermissions from "./pages/admin/RolePermissions";
+import AuditLogs from "./pages/admin/AuditLogs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +71,7 @@ const App = () => (
                   <Route path="/ai-insights" element={<AIInsights />} />
                   <Route path="/customer-360" element={<Customer360 />} />
                   <Route path="/reports" element={<Reports />} />
+                  <Route path="/reports/create" element={<ReportCreate />} />
                   <Route path="/reward-accounts" element={<RewardAccountManagement />} />
                   <Route path="/configuration" element={<Configuration />} />
                   <Route path="/configuration/mpesa-core" element={<MpesaCoreDetail />} />
@@ -74,6 +82,12 @@ const App = () => (
                   <Route path="/configuration/email-service" element={<EmailServiceDetail />} />
                   <Route path="/configuration/ivr-config" element={<IvrConfigDetail />} />
                   <Route path="/configuration/database" element={<DatabaseDetail />} />
+                  <Route path="/admin/users" element={<UserManagement />} />
+                  <Route path="/admin/users/add" element={<AddUser />} />
+                  <Route path="/admin/users/:id/edit" element={<EditUser />} />
+                  <Route path="/admin/users/:id/roles" element={<ManageRoles />} />
+                  <Route path="/admin/permissions" element={<RolePermissions />} />
+                  <Route path="/admin/audit-logs" element={<AuditLogs />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppLayout>
