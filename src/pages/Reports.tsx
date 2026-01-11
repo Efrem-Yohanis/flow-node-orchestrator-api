@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Search, Trash2, Eye, Download, Calendar, Clock } from "lucide-react";
+import { FileText, Search, Eye, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,18 +22,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { useReports, useDeleteReport } from "@/hooks/useReports";
+import { useReports } from "@/hooks/useReports";
 import type { Report } from "@/services/reportApi";
 
 export default function Reports() {
@@ -46,7 +35,6 @@ export default function Reports() {
   const pageSize = 10;
 
   const { data, isLoading } = useReports(page, pageSize, debouncedSearch, sourceTypeFilter, formatFilter);
-  const deleteReport = useDeleteReport();
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
@@ -193,37 +181,15 @@ export default function Reports() {
                         <TableCell>{getSchedulingDisplay(report)}</TableCell>
                         <TableCell>{getFormatBadge(report.export_format)}</TableCell>
                         <TableCell>
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="ghost" size="icon" title="View">
+                          <div className="flex items-center justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              title="View"
+                              onClick={() => navigate(`/reports/${report.id}`)}
+                            >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" title="Download">
-                              <Download className="w-4 h-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" title="Delete">
-                                  <Trash2 className="w-4 h-4 text-destructive" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Report</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete "{report.name}"? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => deleteReport.mutate(report.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>
