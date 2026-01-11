@@ -135,10 +135,8 @@ export default function ReportCreate() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Form */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Report Source Selection */}
+      <div className="space-y-6">
+        {/* Report Source Selection */}
           <Card className="rounded-none">
             <CardHeader>
               <CardTitle className="text-lg">Report Source</CardTitle>
@@ -458,82 +456,78 @@ export default function ReportCreate() {
               </CardContent>
             )}
           </Card>
-        </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Export Format */}
-          <Card className="rounded-none">
-            <CardHeader>
-              <CardTitle className="text-lg">Export Format</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select value={exportFormat} onValueChange={setExportFormat}>
-                <SelectTrigger className="rounded-none">
-                  <SelectValue placeholder="Select format" />
-                </SelectTrigger>
-                <SelectContent>
-                  {exportFormats.map((format) => (
-                    <SelectItem key={format.value} value={format.value}>
-                      {format.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
+        {/* Export Format */}
+        <Card className="rounded-none">
+          <CardHeader>
+            <CardTitle className="text-lg">Export Format</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select value={exportFormat} onValueChange={setExportFormat}>
+              <SelectTrigger className="rounded-none">
+                <SelectValue placeholder="Select format" />
+              </SelectTrigger>
+              <SelectContent>
+                {exportFormats.map((format) => (
+                  <SelectItem key={format.value} value={format.value}>
+                    {format.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
 
-          {/* Summary */}
-          <Card className="rounded-none bg-muted/30">
-            <CardHeader>
-              <CardTitle className="text-lg">Report Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Source</span>
-                  <span className="font-medium capitalize">{reportSource}</span>
-                </div>
-                {reportSource === "campaign" && selectedCampaignData && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Campaign</span>
-                    <span className="font-medium text-right max-w-[150px] truncate">
-                      {selectedCampaignData.name}
-                    </span>
-                  </div>
-                )}
-                {reportSource === "custom" && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Query Type</span>
-                    <span className="font-medium capitalize">{customMode}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Format</span>
-                  <span className="font-medium uppercase">{exportFormat}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Scheduled</span>
-                  <span className="font-medium">
-                    {scheduleEnabled ? `Yes (${frequency})` : "No"}
+        {/* Summary */}
+        <Card className="rounded-none bg-muted/30">
+          <CardHeader>
+            <CardTitle className="text-lg">Report Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground block">Source</span>
+                <span className="font-medium capitalize">{reportSource}</span>
+              </div>
+              {reportSource === "campaign" && selectedCampaignData && (
+                <div>
+                  <span className="text-muted-foreground block">Campaign</span>
+                  <span className="font-medium truncate block">
+                    {selectedCampaignData.name}
                   </span>
                 </div>
+              )}
+              {reportSource === "custom" && (
+                <div>
+                  <span className="text-muted-foreground block">Query Type</span>
+                  <span className="font-medium capitalize">{customMode}</span>
+                </div>
+              )}
+              <div>
+                <span className="text-muted-foreground block">Format</span>
+                <span className="font-medium uppercase">{exportFormat}</span>
               </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Button
-                  onClick={handleGenerateReport}
-                  className="w-full rounded-none bg-gradient-to-r from-primary to-primary/80"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Generate Report
-                </Button>
+              <div>
+                <span className="text-muted-foreground block">Scheduled</span>
+                <span className="font-medium">
+                  {scheduleEnabled ? `Yes (${frequency})` : "No"}
+                </span>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+
+            <Separator />
+
+            <div className="flex justify-end">
+              <Button
+                onClick={handleGenerateReport}
+                className="rounded-none bg-gradient-to-r from-primary to-primary/80"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Generate Report
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
