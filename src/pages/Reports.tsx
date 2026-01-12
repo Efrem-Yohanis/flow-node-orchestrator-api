@@ -22,6 +22,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { PageLoading } from "@/components/ui/page-loading";
 import { useReports } from "@/hooks/useReports";
 import type { Report } from "@/services/reportApi";
 
@@ -148,9 +149,7 @@ export default function Reports() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
+            <PageLoading message="Loading reports..." />
           ) : (
             <>
               <Table>

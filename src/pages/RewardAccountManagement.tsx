@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Search, Eye, Pencil, Trash2, Download, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, Download, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { PageLoading } from "@/components/ui/page-loading";
 
 import {
   useCreateRewardAccount,
@@ -193,11 +194,7 @@ export default function RewardAccountManagement() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoading message="Loading reward accounts..." />;
   }
 
   if (error) {

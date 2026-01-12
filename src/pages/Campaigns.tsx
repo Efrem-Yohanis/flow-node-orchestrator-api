@@ -1,7 +1,7 @@
 // src/pages/Campaigns.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Eye, Megaphone, Loader2 } from "lucide-react";
+import { Plus, Search, Eye, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageLoading } from "@/components/ui/page-loading";
 import { cn } from "@/lib/utils";
 import { useCampaigns } from "@/hooks/useCampaigns";
 
@@ -45,11 +46,7 @@ export default function Campaigns() {
   );
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoading message="Loading campaigns..." />;
   }
 
   if (error) {
