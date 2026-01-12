@@ -1,3 +1,4 @@
+// CampaignApproval.tsx
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Users, MessageSquare, Gift, Calendar, Clock, Mail, Smartphone, Radio, Send, History } from "lucide-react";

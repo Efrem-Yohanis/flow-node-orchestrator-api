@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useCreateReport } from "@/hooks/useReports";
 
 // Mock running campaigns
 const runningCampaigns = [
@@ -58,6 +59,7 @@ interface FilterCriteria {
 
 export default function ReportCreate() {
   const navigate = useNavigate();
+  const createReportMutation = useCreateReport();
   const [reportSource, setReportSource] = useState<"campaign" | "custom">("campaign");
   const [selectedCampaign, setSelectedCampaign] = useState("");
   const [sqlQuery, setSqlQuery] = useState("");
@@ -65,13 +67,14 @@ export default function ReportCreate() {
   const [filters, setFilters] = useState<FilterCriteria[]>([
     { id: "1", field: "", operator: "", value: "" }
   ]);
-  const [exportFormat, setExportFormat] = useState("pdf");
+  const [exportFormat, setExportFormat] = useState<"pdf" | "excel" | "csv">("pdf");
   const [reportName, setReportName] = useState("");
   const [description, setDescription] = useState("");
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const [frequency, setFrequency] = useState("weekly");
+  const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly">("weekly");
   const [recipients, setRecipients] = useState<string[]>([]);
   const [newRecipient, setNewRecipient] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddFilter = () => {
     setFilters(prev => [...prev, { id: Date.now().toString(), field: "", operator: "", value: "" }]);
@@ -98,7 +101,7 @@ export default function ReportCreate() {
     setRecipients(prev => prev.filter(r => r !== email));
   };
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
     if (!reportName) {
       toast.error("Please enter a report name");
       return;
@@ -111,8 +114,32 @@ export default function ReportCreate() {
       toast.error("Please enter SQL query");
       return;
     }
-    toast.success("Report generated successfully!");
-    navigate("/reports");
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        name: reportName,
+        description: description || undefined,
+        source_type: reportSource,
+        configuration: reportSource === "campaign"
+          ? { campaign_id: selectedCampaign }
+          : customMode === "sql"
+            ? { custom_mode: "sql" as const, sql_query: sqlQuery }
+            : { custom_mode: "filter" as const, filters: filters.filter(f => f.field && f.operator).map(f => ({ field: f.field, operator: f.operator, value: f.value })) },
+        export_format: exportFormat,
+        scheduling_enabled: scheduleEnabled,
+        frequency: scheduleEnabled ? frequency : undefined,
+        recipients: scheduleEnabled && recipients.length > 0 ? recipients : undefined,
+        is_active: true,
+      };
+
+      await createReportMutation.mutateAsync(payload);
+      navigate("/reports");
+    } catch (error) {
+      // Error is handled by mutation
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const selectedCampaignData = runningCampaigns.find(c => c.id === selectedCampaign);
@@ -403,7 +430,7 @@ export default function ReportCreate() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Frequency</Label>
-                  <RadioGroup value={frequency} onValueChange={setFrequency} className="flex gap-4">
+                  <RadioGroup value={frequency} onValueChange={(v) => setFrequency(v as "daily" | "weekly" | "monthly")} className="flex gap-4">
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="daily" id="daily" />
                       <Label htmlFor="daily" className="font-normal">Daily</Label>
@@ -463,7 +490,7 @@ export default function ReportCreate() {
             <CardTitle className="text-lg">Export Format</CardTitle>
           </CardHeader>
           <CardContent>
-            <Select value={exportFormat} onValueChange={setExportFormat}>
+            <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as "pdf" | "excel" | "csv")}>
               <SelectTrigger className="rounded-none">
                 <SelectValue placeholder="Select format" />
               </SelectTrigger>
@@ -520,10 +547,11 @@ export default function ReportCreate() {
             <div className="flex justify-end">
               <Button
                 onClick={handleGenerateReport}
+                disabled={isSubmitting}
                 className="rounded-none bg-gradient-to-r from-primary to-primary/80"
               >
                 <FileText className="w-4 h-4 mr-2" />
-                Generate Report
+                {isSubmitting ? "Creating..." : "Generate Report"}
               </Button>
             </div>
           </CardContent>

@@ -1,3 +1,4 @@
+// src/pages/CampaignCreate.tsx
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Save, Send, Check } from "lucide-react";
@@ -10,6 +11,9 @@ import { ChannelMessageStep } from "@/components/campaign-create/ChannelMessageS
 import { RewardConfigStep } from "@/components/campaign-create/RewardConfigStep";
 import { ScheduleControlsStep } from "@/components/campaign-create/ScheduleControlsStep";
 import { ReviewSubmitStep } from "@/components/campaign-create/ReviewSubmitStep";
+
+import { useCreateCampaign, useSubmitCampaign } from "@/hooks/useCampaigns";
+import { buildCampaignPayload } from "@/utils/campaignMapper";
 
 export interface ChannelMessages {
   sms: Record<string, string>;
@@ -25,36 +29,23 @@ export interface ChannelSettings {
 }
 
 export interface CampaignFormData {
-  // Step 1: Basics
   name: string;
-  type: string; // "informational" | "incentive"
+  type: string;
   objective: string;
   description: string;
   owner: string;
-  
-  // Step 2: Audience
+
   selectedSegmentIds: string[];
   uploadedFileName: string;
   uploadedFileCustomers: number;
   totalCustomers: number;
-  
-  // Step 3: Channels & Messages
-  channels: {
-    sms: boolean;
-    ussd: boolean;
-    app: boolean;
-    email: boolean;
-  };
+
+  channels: { sms: boolean; ussd: boolean; app: boolean; email: boolean };
   channelMessages: ChannelMessages;
-  emailContent: {
-    language: string;
-    subject: string;
-    body: string;
-  };
+  emailContent: { language: string; subject: string; body: string };
   channelSettings: ChannelSettings;
-  
-  // Step 4: Rewards (only for incentive type)
-  rewardType: string; // "cashback" | "bonus" | "other"
+
+  rewardType: string;
   rewardTypeOther: string;
   rewardValue: number;
   rewardCapPerDay: number;
@@ -62,8 +53,7 @@ export interface CampaignFormData {
   rewardAccountId: string;
   rewardAccountName: string;
   rewardAccountBalance: number;
-  
-  // Step 5: Schedule
+
   scheduleType: string;
   startDate: string;
   endDate: string;
@@ -76,35 +66,22 @@ const initialFormData: CampaignFormData = {
   objective: "",
   description: "",
   owner: "Current User",
-  
+
   selectedSegmentIds: [],
   uploadedFileName: "",
   uploadedFileCustomers: 0,
   totalCustomers: 0,
-  
-  channels: {
-    sms: false,
-    ussd: false,
-    app: false,
-    email: false,
-  },
-  channelMessages: {
-    sms: {},
-    ussd: {},
-    app: {},
-  },
-  emailContent: {
-    language: "en",
-    subject: "",
-    body: "",
-  },
+
+  channels: { sms: false, ussd: false, app: false, email: false },
+  channelMessages: { sms: {}, ussd: {}, app: {} },
+  emailContent: { language: "en", subject: "", body: "" },
   channelSettings: {
     sms: { cap: 0, retryOnFailure: false, priority: 1 },
     ussd: { cap: 0, retryOnFailure: false, priority: 2 },
     app: { cap: 0, retryOnFailure: false, priority: 3 },
     email: { cap: 0, retryOnFailure: false, priority: 4 },
   },
-  
+
   rewardType: "cashback",
   rewardTypeOther: "",
   rewardValue: 0,
@@ -113,7 +90,7 @@ const initialFormData: CampaignFormData = {
   rewardAccountId: "",
   rewardAccountName: "",
   rewardAccountBalance: 0,
-  
+
   scheduleType: "immediate",
   startDate: "",
   endDate: "",
@@ -124,20 +101,21 @@ export default function CampaignCreate() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preSelectedSegment = searchParams.get("segment");
-  
+
+  const createCampaignMutation = useCreateCampaign();
+
+  // If you want "create then submit" from this page
+  const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
+  const submitMutation = useSubmitCampaign(createdCampaignId ?? "");
+
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<CampaignFormData>(() => {
     if (preSelectedSegment) {
-      return {
-        ...initialFormData,
-        selectedSegmentIds: [preSelectedSegment],
-        totalCustomers: 45000,
-      };
+      return { ...initialFormData, selectedSegmentIds: [preSelectedSegment], totalCustomers: 45000 };
     }
     return initialFormData;
   });
 
-  // Calculate steps based on campaign type
   const isIncentive = formData.type === "incentive";
   const steps = isIncentive
     ? [
@@ -159,13 +137,12 @@ export default function CampaignCreate() {
   const maxStep = steps.length;
 
   const updateFormData = (updates: Partial<CampaignFormData>) => {
-    setFormData(prev => ({ ...prev, ...updates }));
+    setFormData((prev) => ({ ...prev, ...updates }));
   };
 
   const validateStep = (step: number): boolean => {
-    // Map step numbers based on campaign type
-    const actualStep = isIncentive ? step : (step >= 4 ? step + 1 : step);
-    
+    const actualStep = isIncentive ? step : step >= 4 ? step + 1 : step;
+
     switch (actualStep) {
       case 1:
         if (!formData.name || !formData.type || !formData.objective) {
@@ -173,33 +150,36 @@ export default function CampaignCreate() {
           return false;
         }
         return true;
+
       case 2:
         if (formData.selectedSegmentIds.length === 0 && !formData.uploadedFileName) {
           toast.error("Please select at least one segment or upload a file");
           return false;
         }
         return true;
-      case 3:
-        const hasChannel = Object.values(formData.channels).some(v => v);
+
+      case 3: {
+        const hasChannel = Object.values(formData.channels).some((v) => v);
         if (!hasChannel) {
           toast.error("Please select at least one channel");
           return false;
         }
-        // Check channel priorities if multiple channels
         const selectedChannelsCount = Object.values(formData.channels).filter(Boolean).length;
         if (selectedChannelsCount > 1) {
-          const priorities = [];
+          const priorities: number[] = [];
           if (formData.channels.sms) priorities.push(formData.channelSettings.sms.priority);
           if (formData.channels.ussd) priorities.push(formData.channelSettings.ussd.priority);
           if (formData.channels.app) priorities.push(formData.channelSettings.app.priority);
           if (formData.channels.email) priorities.push(formData.channelSettings.email.priority);
-          
-          if (priorities.some(p => !p || p <= 0)) {
+
+          if (priorities.some((p) => !p || p <= 0)) {
             toast.error("Please set priority for all selected channels");
             return false;
           }
         }
         return true;
+      }
+
       case 4:
         if (isIncentive) {
           if (!formData.rewardValue || formData.rewardValue <= 0) {
@@ -217,6 +197,7 @@ export default function CampaignCreate() {
           }
         }
         return true;
+
       case 5:
         if (formData.scheduleType === "scheduled") {
           if (!formData.startDate || !formData.endDate) {
@@ -225,34 +206,54 @@ export default function CampaignCreate() {
           }
         }
         return true;
+
       default:
         return true;
     }
   };
 
   const handleNext = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, maxStep));
-    }
+    if (validateStep(currentStep)) setCurrentStep((prev) => Math.min(prev + 1, maxStep));
   };
 
-  const handleBack = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
+  const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
+    // Create campaign as draft
+    const payload = buildCampaignPayload(formData, "draft");
+    const res = await createCampaignMutation.mutateAsync(payload);
+
+    // API returns data.campaignId
+    if (res?.data?.campaignId) setCreatedCampaignId(res.data.campaignId);
+
     toast.success("Campaign saved as draft");
     navigate("/campaigns");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    const payload = buildCampaignPayload(formData, "draft");
+
+    // If not created yet, create first
+    let campaignId = createdCampaignId;
+    if (!campaignId) {
+      const res = await createCampaignMutation.mutateAsync(payload);
+      campaignId = res?.data?.campaignId ?? null;
+      if (campaignId) setCreatedCampaignId(campaignId);
+    }
+
+    if (!campaignId) {
+      toast.error("Unable to submit: campaignId not returned by API");
+      return;
+    }
+
+    // Now submit for approval
+    await submitMutation.mutateAsync(payload);
+
     toast.success("Campaign submitted for approval successfully.");
     navigate("/campaigns/approvals");
   };
 
-  const handleCancel = () => {
-    navigate("/campaigns");
-  };
+  const handleCancel = () => navigate("/campaigns");
 
   const renderStep = () => {
     if (isIncentive) {
@@ -290,20 +291,20 @@ export default function CampaignCreate() {
     }
   };
 
+  const isBusy = createCampaignMutation.isPending || submitMutation.isPending;
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Create Campaign</h1>
           <p className="text-muted-foreground">Configure and launch your engagement campaign</p>
         </div>
-        <Button variant="outline" onClick={handleCancel}>
+        <Button variant="outline" onClick={handleCancel} disabled={isBusy}>
           Cancel
         </Button>
       </div>
 
-      {/* Progress Bar */}
       <div className="bg-card border p-4">
         <div className="flex items-center justify-between mb-4">
           {steps.map((step, index) => (
@@ -320,53 +321,44 @@ export default function CampaignCreate() {
                 >
                   {currentStep > index + 1 ? <Check className="w-4 h-4" /> : index + 1}
                 </div>
-                <span className={`text-xs mt-1 text-center max-w-[80px] ${
-                  currentStep >= index + 1 ? "text-foreground" : "text-muted-foreground"
-                }`}>
+                <span
+                  className={`text-xs mt-1 text-center max-w-[80px] ${
+                    currentStep >= index + 1 ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
                   {step.name}
                 </span>
               </div>
               {index < steps.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-2 ${
-                  currentStep > index + 1 ? "bg-primary" : "bg-muted"
-                }`} />
+                <div className={`flex-1 h-0.5 mx-2 ${currentStep > index + 1 ? "bg-primary" : "bg-muted"}`} />
               )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Step Content */}
-      <div className="bg-card border p-6 min-h-[400px]">
-        {renderStep()}
-      </div>
+      <div className="bg-card border p-6 min-h-[400px]">{renderStep()}</div>
 
-      {/* Navigation Buttons */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          onClick={handleBack}
-          disabled={currentStep === 1}
-          className="gap-2"
-        >
+        <Button variant="outline" onClick={handleBack} disabled={currentStep === 1 || isBusy} className="gap-2">
           <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
-        
+
         <div className="flex gap-3">
           {currentStep === maxStep ? (
             <>
-              <Button variant="outline" onClick={handleSaveDraft} className="gap-2">
+              <Button variant="outline" onClick={handleSaveDraft} className="gap-2" disabled={isBusy}>
                 <Save className="w-4 h-4" />
-                Save as Draft
+                {createCampaignMutation.isPending ? "Saving..." : "Save as Draft"}
               </Button>
-              <Button onClick={handleSubmit} className="gap-2">
+              <Button onClick={handleSubmit} className="gap-2" disabled={isBusy}>
                 <Send className="w-4 h-4" />
-                Submit for Approval
+                {submitMutation.isPending ? "Submitting..." : "Submit for Approval"}
               </Button>
             </>
           ) : (
-            <Button onClick={handleNext} className="gap-2">
+            <Button onClick={handleNext} className="gap-2" disabled={isBusy}>
               Next
               <ArrowRight className="w-4 h-4" />
             </Button>

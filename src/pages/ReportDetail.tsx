@@ -1,18 +1,23 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, FileText, Clock, Mail, Calendar, Download, Play, Database, Filter, Code } from "lucide-react";
+import { ArrowLeft, FileText, Clock, Mail, Calendar, Play, Database, Filter, Code, Pencil, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useReports } from "@/hooks/useReports";
+import { useReportDetail } from "@/hooks/useReports";
 
 export default function ReportDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { data } = useReports(1, 100);
+  const { data: report, isLoading } = useReportDetail(id);
 
-  // Find the report by ID
-  const report = data?.reports?.find(r => r.id === id);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   if (!report) {
     return (
@@ -29,6 +34,11 @@ export default function ReportDetail() {
       </div>
     );
   }
+
+  // Helper to get scheduling info from flat or nested structure
+  const schedulingEnabled = report.scheduling_enabled ?? report.scheduling?.enabled ?? false;
+  const schedulingFrequency = report.frequency ?? report.scheduling?.frequency;
+  const schedulingRecipients = report.recipients ?? report.scheduling?.recipients ?? [];
 
   const getFormatBadge = (format: string) => {
     const variants: Record<string, "default" | "secondary" | "outline"> = {
@@ -65,9 +75,9 @@ export default function ReportDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2 rounded-none">
-            <Download className="w-4 h-4" />
-            Download
+          <Button variant="outline" className="gap-2 rounded-none" onClick={() => navigate(`/reports/${id}/edit`)}>
+            <Pencil className="w-4 h-4" />
+            Edit Report
           </Button>
           <Button className="gap-2 rounded-none">
             <Play className="w-4 h-4" />
@@ -119,7 +129,7 @@ export default function ReportDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Schedule</p>
                 <p className="font-semibold">
-                  {report.scheduling?.enabled ? report.scheduling.frequency : "Manual"}
+                  {schedulingEnabled ? schedulingFrequency : "Manual"}
                 </p>
               </div>
             </div>
@@ -213,26 +223,26 @@ export default function ReportDetail() {
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-muted/50 border">
               <span className="text-muted-foreground">Status</span>
-              <Badge variant={report.scheduling?.enabled ? "default" : "secondary"}>
-                {report.scheduling?.enabled ? "Enabled" : "Disabled"}
+              <Badge variant={schedulingEnabled ? "default" : "secondary"}>
+                {schedulingEnabled ? "Enabled" : "Disabled"}
               </Badge>
             </div>
 
-            {report.scheduling?.enabled && (
+            {schedulingEnabled && (
               <>
                 <div className="flex justify-between items-center p-3 bg-muted/50 border">
                   <span className="text-muted-foreground">Frequency</span>
-                  <span className="font-medium capitalize">{report.scheduling.frequency}</span>
+                  <span className="font-medium capitalize">{schedulingFrequency}</span>
                 </div>
 
-                {report.scheduling.recipients && report.scheduling.recipients.length > 0 && (
+                {schedulingRecipients.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <Mail className="w-4 h-4" />
                       Recipients
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {report.scheduling.recipients.map((email, idx) => (
+                      {schedulingRecipients.map((email, idx) => (
                         <Badge key={idx} variant="outline">
                           {email}
                         </Badge>
@@ -243,7 +253,7 @@ export default function ReportDetail() {
               </>
             )}
 
-            {!report.scheduling?.enabled && (
+            {!schedulingEnabled && (
               <p className="text-sm text-muted-foreground">
                 This report is generated manually. Enable scheduling to automate report generation.
               </p>

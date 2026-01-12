@@ -54,7 +54,7 @@ export function ApproverHeader() {
               <DropdownMenuItem 
                 key={approval.id} 
                 className="flex flex-col items-start p-3 cursor-pointer" 
-                onClick={() => navigate(`/campaigns/${approval.id}/approval`)}
+                onClick={() => navigate(`/campaigns/${String(approval.id)}/approval`)}
               >
                 <span className="font-medium text-sm">{approval.name}</span>
                 <span className="text-xs text-muted-foreground">Submitted: {approval.submittedOn}</span>

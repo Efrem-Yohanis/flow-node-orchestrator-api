@@ -5,25 +5,38 @@ type CampaignStatus = "Draft" | "Pending_Approval" | "Scheduled" | "Running" | "
 
 interface OverviewTabProps {
   campaign: {
-    id: string;
-    name: string;
-    type: string;
-    objective: string;
-    owner: string;
-    status: CampaignStatus;
-    description?: string;
-    segment: {
-      name: string;
-      id: string;
-      filters: string;
+    status?: string;
+    data?: {
+      header?: {
+        name?: string;
+        type?: string;
+        objective?: string;
+        owner?: string;
+      };
+      overview?: {
+        summary?: {
+          description?: string;
+          scheduleType?: string;
+          frequencyCap?: string;
+        };
+        rewards?: {
+          type?: string;
+          value?: string;
+          dailyCap?: string;
+          perCustomerCap?: string;
+          account?: string;
+          estimatedCost?: string;
+        };
+        channels?: Array<{
+          type: string;
+          enabled: boolean;
+          priority: number;
+          cap: number;
+          content: Array<{ lang: string; text: string }>;
+        }>;
+        approvals?: any[];
+      };
     };
-    schedule: {
-      startDate: string;
-      endDate: string;
-      triggerType: string;
-      frequencyCap: string;
-    };
-    aiRecommendation: boolean;
   };
 }
 
@@ -139,6 +152,14 @@ const getApprovalStatusColor = (status: string) => {
 };
 
 export function OverviewTab({ campaign }: OverviewTabProps) {
+  const header = campaign?.data?.header;
+  const overview = campaign?.data?.overview;
+  const rewards = overview?.rewards;
+  const summary = overview?.summary;
+  const channels = overview?.channels || [];
+  const approvals = overview?.approvals || [];
+  const status = campaign?.status || header?.name || "Draft";
+
   return (
     <div className="space-y-6">
       {/* Campaign Summary Card */}
@@ -148,23 +169,23 @@ export function OverviewTab({ campaign }: OverviewTabProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <span className="text-sm text-muted-foreground">Name</span>
-            <p className="font-medium">{campaignSummary.name}</p>
+            <p className="font-medium">{header?.name || campaignSummary.name}</p>
           </div>
           <div>
             <span className="text-sm text-muted-foreground">Type</span>
-            <p className="font-medium">{campaignSummary.type}</p>
+            <p className="font-medium">{header?.type || campaignSummary.type}</p>
           </div>
           <div className="md:col-span-2">
             <span className="text-sm text-muted-foreground">Objective</span>
-            <p className="font-medium">{campaignSummary.objective}</p>
+            <p className="font-medium">{header?.objective || campaignSummary.objective}</p>
           </div>
           <div className="md:col-span-2">
             <span className="text-sm text-muted-foreground">Description</span>
-            <p className="font-medium">{campaignSummary.description}</p>
+            <p className="font-medium">{summary?.description || campaignSummary.description}</p>
           </div>
           <div>
             <span className="text-sm text-muted-foreground">Owner</span>
-            <p className="font-medium">{campaignSummary.owner}</p>
+            <p className="font-medium">{header?.owner || campaignSummary.owner}</p>
           </div>
         </div>
       </div>
@@ -202,27 +223,27 @@ export function OverviewTab({ campaign }: OverviewTabProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <span className="text-sm text-muted-foreground">Reward Type</span>
-            <p className="font-medium">{rewardSummary.rewardType}</p>
+            <p className="font-medium">{rewards?.type || rewardSummary.rewardType}</p>
           </div>
           <div>
             <span className="text-sm text-muted-foreground">Reward Value</span>
-            <p className="font-medium">{rewardSummary.rewardValue}</p>
+            <p className="font-medium">{rewards?.value || rewardSummary.rewardValue}</p>
           </div>
           <div>
             <span className="text-sm text-muted-foreground">Daily Cap</span>
-            <p className="font-medium">{rewardSummary.dailyCap}</p>
+            <p className="font-medium">{rewards?.dailyCap || rewardSummary.dailyCap}</p>
           </div>
           <div>
             <span className="text-sm text-muted-foreground">Per Customer Cap</span>
-            <p className="font-medium">{rewardSummary.perCustomerCap}</p>
+            <p className="font-medium">{rewards?.perCustomerCap || rewardSummary.perCustomerCap}</p>
           </div>
           <div>
             <span className="text-sm text-muted-foreground">Reward Account</span>
-            <p className="font-medium">{rewardSummary.rewardAccount}</p>
+            <p className="font-medium">{rewards?.account || rewardSummary.rewardAccount}</p>
           </div>
           <div>
             <span className="text-sm text-muted-foreground">Estimated Total Cost</span>
-            <p className="font-medium">{rewardSummary.estimatedTotalCost}</p>
+            <p className="font-medium">{rewards?.estimatedCost || rewardSummary.estimatedTotalCost}</p>
           </div>
         </div>
       </div>
@@ -237,11 +258,11 @@ export function OverviewTab({ campaign }: OverviewTabProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <span className="text-sm text-muted-foreground">Schedule Type</span>
-            <p className="font-medium">{scheduleSummary.scheduleType}</p>
+            <p className="font-medium">{summary?.scheduleType || scheduleSummary.scheduleType}</p>
           </div>
           <div>
             <span className="text-sm text-muted-foreground">Frequency Cap</span>
-            <p className="font-medium">{scheduleSummary.frequencyCap}</p>
+            <p className="font-medium">{summary?.frequencyCap || scheduleSummary.frequencyCap}</p>
           </div>
         </div>
       </div>
@@ -296,7 +317,7 @@ export function OverviewTab({ campaign }: OverviewTabProps) {
       })}
 
       {/* Approval History Card - Not shown for Draft campaigns */}
-      {campaign.status !== "Draft" && (
+      {status !== "Draft" && (
         <div className="bg-card border p-6 space-y-4">
           <div className="flex items-center gap-2">
             <History className="w-5 h-5 text-primary" />

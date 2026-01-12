@@ -1,3 +1,4 @@
+// CampaignListForApprover.tsx
 import { useNavigate } from "react-router-dom";
 import { Search, X, Eye, Check, Clock, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -159,7 +160,7 @@ export default function CampaignListForApprover() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/campaigns/${campaign.id}/approval`)}
+                          onClick={() => navigate(`/campaigns/${String(campaign.id)}/approval`)}
                           className="gap-2"
                         >
                           <Eye className="w-4 h-4" />
@@ -201,7 +202,7 @@ export default function CampaignListForApprover() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/campaigns/${campaign.id}/approval`)}
+                    onClick={() => navigate(`/campaigns/${String(campaign.id)}/approval`)}
                     className="w-full gap-2"
                   >
                     <Eye className="w-4 h-4" />

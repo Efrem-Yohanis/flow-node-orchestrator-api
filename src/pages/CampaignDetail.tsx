@@ -1,6 +1,7 @@
-import { useState } from "react";
+// src/pages/CampaignDetail.tsx
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Play, Pause, Send, Trash2, XCircle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Play, Pause, Send, Trash2, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,40 +24,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-type CampaignStatus = "Draft" | "Pending_Approval" | "Scheduled" | "Running" | "Paused" | "Completed" | "Failed";
+import { useCampaignDetail, useDeleteCampaign, useSubmitCampaign } from "@/hooks/useCampaigns";
+// If you want submit from detail, you need the original payload used to create/update.
+// You can either store it in backend, or fetch it, or keep it in frontend state.
+// For now: leave submit action as "submit without payload" isn't supported by your API.
+import type { CampaignUpsertRequest } from "@/services/campaignApi";
 
-// Mock campaign data
-const campaignData = {
-  id: "CMP-2024-001",
-  name: "Meskel Reactivation Campaign",
-  type: "Incentive",
-  objective: "Activate dormant high-value customers through targeted incentives",
-  description: "This campaign targets customers who have been inactive for 60+ days with personalized rewards.",
-  owner: "Abebe Kebede",
-  createdDate: "2024-01-01",
-  status: "Running" as CampaignStatus,
-  segment: {
-    name: "High Value Active",
-    id: "seg-001",
-    filters: "Active in last 30 days AND TXN value ≥ 5000 ETB AND Location = Addis Ababa",
-  },
-  schedule: {
-    startDate: "2024-01-01",
-    endDate: "2024-01-31",
-    triggerType: "Scheduled",
-    frequencyCap: "1 message per day",
-  },
-  aiRecommendation: true,
-  kpis: {
-    targeted: 45000,
-    sent: 44200,
-    delivered: 42300,
-    rewarded: 38500,
-    activated: 28900,
-    cost: 385000,
-    roi: 2.4,
-  },
-};
+type CampaignStatus = "Draft" | "Pending_Approval" | "Scheduled" | "Running" | "Paused" | "Completed" | "Failed";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -94,15 +68,12 @@ const getTypeColor = (type: string) => {
   }
 };
 
-// Tab visibility based on status - Audience, Channels, Rewards, Performance only for Running, Paused, Completed
 const getVisibleTabs = (status: CampaignStatus) => {
   const baseTabs = ["overview", "logs"];
   const extendedTabs = ["audience", "channels", "rewards", "performance"];
-  
   if (status === "Running" || status === "Paused" || status === "Completed") {
     return ["overview", ...extendedTabs, "logs"];
   }
-  
   return baseTabs;
 };
 
@@ -117,24 +88,54 @@ const tabLabels: Record<string, string> = {
 
 export default function CampaignDetail() {
   const { id } = useParams();
+  const campaignId = id as string;
   const navigate = useNavigate();
+
+  const { data, isLoading, error, refetch } = useCampaignDetail(campaignId);
+
+  const deleteMutation = useDeleteCampaign();
+  const submitMutation = useSubmitCampaign(campaignId);
+
   const [activeTab, setActiveTab] = useState("overview");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  
-  const campaign = campaignData;
-  const visibleTabs = getVisibleTabs(campaign.status);
-  const status = campaign.status;
 
-  // Ensure active tab is valid for current status
-  if (!visibleTabs.includes(activeTab)) {
-    setActiveTab("overview");
-  }
+  const header = data?.data.header;
+  const overview = data?.data.overview;
 
-  const handleSubmitForApproval = () => console.log("Submitting for approval...");
-  const handleDelete = () => { console.log("Deleting..."); setDeleteDialogOpen(false); };
+  const status = (header?.status ?? "Draft") as CampaignStatus;
+  const visibleTabs = getVisibleTabs(status);
+
+  useEffect(() => {
+    if (!visibleTabs.includes(activeTab)) setActiveTab("overview");
+  }, [activeTab, visibleTabs]);
+
+  const handleDelete = async () => {
+    await deleteMutation.mutateAsync(campaignId);
+    setDeleteDialogOpen(false);
+    navigate("/campaigns");
+  };
+
+  // IMPORTANT: your submit endpoint requires full payload.
+  // If you have a way to fetch the original config, use it here.
+  const handleSubmitForApproval = async () => {
+    // TODO: replace with real payload (CampaignUpsertRequest)
+    const payload: CampaignUpsertRequest | null = null;
+
+    if (!payload) {
+      // keep predictable behavior instead of calling API incorrectly
+      // You can remove this once you have the payload.
+      throw new Error("Submit requires campaign payload. Provide payload from stored draft/config.");
+    }
+
+    await submitMutation.mutateAsync(payload);
+  };
+
   const handleStartCampaign = () => console.log("Starting campaign...");
-  const handleCancel = () => { console.log("Cancelling..."); setCancelDialogOpen(false); };
+  const handleCancel = () => {
+    console.log("Cancelling...");
+    setCancelDialogOpen(false);
+  };
   const handleStartNow = () => console.log("Starting now...");
   const handlePause = () => console.log("Pausing...");
   const handleResume = () => console.log("Resuming...");
@@ -144,13 +145,18 @@ export default function CampaignDetail() {
       case "Draft":
         return (
           <>
-            <Button onClick={handleSubmitForApproval} className="gap-2">
+            <Button
+              onClick={() => handleSubmitForApproval().catch((e) => console.error(e))}
+              className="gap-2"
+              disabled={submitMutation.isPending}
+            >
               <Send className="w-4 h-4" />
               Submit for Approval
             </Button>
+
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="gap-2">
+                <Button variant="destructive" className="gap-2" disabled={deleteMutation.isPending}>
                   <Trash2 className="w-4 h-4" />
                   Delete
                 </Button>
@@ -164,14 +170,18 @@ export default function CampaignDetail() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Delete
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleteMutation.isPending ? "Deleting..." : "Delete"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </>
         );
+
       case "Pending_Approval":
         return (
           <>
@@ -189,13 +199,14 @@ export default function CampaignDetail() {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Cancel Campaign</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to cancel this campaign?
-                  </AlertDialogDescription>
+                  <AlertDialogDescription>Are you sure you want to cancel this campaign?</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Close</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  <AlertDialogAction
+                    onClick={handleCancel}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
                     Cancel Campaign
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -203,6 +214,7 @@ export default function CampaignDetail() {
             </AlertDialog>
           </>
         );
+
       case "Scheduled":
         return (
           <>
@@ -220,13 +232,14 @@ export default function CampaignDetail() {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Cancel Campaign</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to cancel this scheduled campaign?
-                  </AlertDialogDescription>
+                  <AlertDialogDescription>Are you sure you want to cancel this scheduled campaign?</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Close</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  <AlertDialogAction
+                    onClick={handleCancel}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
                     Cancel Campaign
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -234,6 +247,7 @@ export default function CampaignDetail() {
             </AlertDialog>
           </>
         );
+
       case "Running":
         return (
           <Button variant="secondary" onClick={handlePause} className="gap-2">
@@ -241,6 +255,7 @@ export default function CampaignDetail() {
             Pause
           </Button>
         );
+
       case "Paused":
         return (
           <Button onClick={handleResume} className="gap-2">
@@ -248,95 +263,112 @@ export default function CampaignDetail() {
             Resume
           </Button>
         );
+
       default:
         return null;
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-destructive">Failed to load campaign</p>
+        <Button onClick={() => refetch()}>Retry</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* System Alert Banner */}
-      {campaign.status === "Failed" && (
+      {status === "Failed" && (
         <div className="bg-destructive/10 border border-destructive/20 p-4 flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-destructive" />
-          <span className="text-destructive font-medium">Campaign failed due to system error. Please contact support.</span>
+          <span className="text-destructive font-medium">
+            Campaign failed due to system error. Please contact support.
+          </span>
         </div>
       )}
 
-      {/* Back Navigation */}
       <Button variant="ghost" className="gap-2 -ml-2" onClick={() => navigate("/campaigns")}>
         <ArrowLeft className="w-4 h-4" />
         Back to Campaigns
       </Button>
 
-      {/* Campaign Header */}
       <div className="bg-card border p-6">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-          {/* Left Side - Campaign Info */}
           <div className="space-y-4 flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{campaign.name}</h1>
-              <Badge variant="outline" className={cn("font-medium", getStatusColor(campaign.status))}>
-                {campaign.status.replace("_", " ")}
+              <h1 className="text-2xl font-bold">{header?.name ?? "-"}</h1>
+              <Badge variant="outline" className={cn("font-medium", getStatusColor(status))}>
+                {status.replace("_", " ")}
               </Badge>
             </div>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3 text-sm">
               <div>
                 <span className="text-muted-foreground">Campaign ID</span>
-                <p className="font-medium">{campaign.id}</p>
+                <p className="font-medium">{campaignId}</p>
               </div>
               <div>
                 <span className="text-muted-foreground">Type</span>
                 <div className="mt-1">
-                  <Badge variant="outline" className={cn("font-medium", getTypeColor(campaign.type))}>
-                    {campaign.type}
+                  <Badge variant="outline" className={cn("font-medium", getTypeColor(header?.type ?? ""))}>
+                    {header?.type ?? "-"}
                   </Badge>
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Owner</span>
-                <p className="font-medium">{campaign.owner}</p>
+                <p className="font-medium">{header?.owner ?? "-"}</p>
               </div>
               <div>
                 <span className="text-muted-foreground">Created</span>
-                <p className="font-medium">{campaign.createdDate}</p>
+                <p className="font-medium">{header?.createdDate ?? "-"}</p>
               </div>
             </div>
 
             <div>
               <span className="text-sm text-muted-foreground">Objective</span>
-              <p className="text-sm mt-1">{campaign.objective}</p>
+              <p className="text-sm mt-1">{header?.objective ?? "-"}</p>
             </div>
+
+            {overview?.summary?.description && (
+              <div>
+                <span className="text-sm text-muted-foreground">Description</span>
+                <p className="text-sm mt-1">{overview.summary.description}</p>
+              </div>
+            )}
           </div>
 
-          {/* Right Side - Action Buttons */}
-          <div className="flex flex-wrap gap-2 lg:flex-shrink-0">
-            {renderActionButtons()}
-          </div>
+          <div className="flex flex-wrap gap-2 lg:flex-shrink-0">{renderActionButtons()}</div>
         </div>
       </div>
 
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-muted/50 p-1 h-auto flex-wrap">
           {visibleTabs.map((tab) => (
-            <TabsTrigger 
-              key={tab} 
-              value={tab} 
-              className="data-[state=active]:bg-background"
-            >
+            <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-background">
               {tabLabels[tab]}
             </TabsTrigger>
           ))}
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab campaign={campaign} />
+          {/* You will likely need to update OverviewTab to accept API data instead of mock shape */}
+          <OverviewTab campaign={data} />
         </TabsContent>
 
         {visibleTabs.includes("audience") && (
           <TabsContent value="audience">
+            {/* Ideally pass campaignId to tab and let it call useCampaignAudience(campaignId) */}
             <AudienceTab />
           </TabsContent>
         )}
@@ -364,5 +396,4 @@ export default function CampaignDetail() {
         </TabsContent>
       </Tabs>
     </div>
-  );
-}
+  );}

@@ -164,8 +164,8 @@ export default function Reports() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data?.reports && data.reports.length > 0 ? (
-                    data.reports.map((report) => (
+                  {data?.results && data.results.length > 0 ? (
+                    data.results.map((report) => (
                       <TableRow key={report.id}>
                         <TableCell>
                           <div>
@@ -205,10 +205,10 @@ export default function Reports() {
               </Table>
 
               {/* Pagination */}
-              {data?.pagination && data.pagination.total_pages > 1 && (
+              {data?.count && data.count > pageSize && (
                 <div className="flex items-center justify-between px-4 py-4 border-t">
                   <p className="text-sm text-muted-foreground">
-                    Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, data.pagination.total)} of {data.pagination.total} reports
+                    Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, data.count)} of {data.count} reports
                   </p>
                   <Pagination>
                     <PaginationContent>
@@ -218,7 +218,7 @@ export default function Reports() {
                           className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                         />
                       </PaginationItem>
-                      {Array.from({ length: data.pagination.total_pages }, (_, i) => i + 1).map((pageNum) => (
+                      {Array.from({ length: Math.ceil(data.count / pageSize) }, (_, i) => i + 1).map((pageNum) => (
                         <PaginationItem key={pageNum}>
                           <PaginationLink
                             onClick={() => setPage(pageNum)}
@@ -231,8 +231,8 @@ export default function Reports() {
                       ))}
                       <PaginationItem>
                         <PaginationNext
-                          onClick={() => setPage((p) => Math.min(data.pagination.total_pages, p + 1))}
-                          className={page === data.pagination.total_pages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          onClick={() => setPage((p) => Math.min(Math.ceil(data.count / pageSize), p + 1))}
+                          className={page === Math.ceil(data.count / pageSize) ? "pointer-events-none opacity-50" : "cursor-pointer"}
                         />
                       </PaginationItem>
                     </PaginationContent>
