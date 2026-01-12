@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { PageLoading } from "@/components/ui/page-loading";
 import { useCustomer360 } from "@/hooks/useCustomer";
 
 export default function Customer360() {
@@ -62,12 +63,7 @@ export default function Customer360() {
       </div>
 
       {/* Loading State */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <span className="ml-3 text-muted-foreground">Loading customer data...</span>
-        </div>
-      )}
+      {isLoading && <PageLoading message="Loading customer data..." />}
 
       {/* Error State */}
       {isError && (

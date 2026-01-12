@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Users, Eye, Loader2 } from "lucide-react";
+import { Plus, Search, Users, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useSegments } from "@/hooks/useSegments";
+import { PageLoading } from "@/components/ui/page-loading";
 import { format } from "date-fns";
 
 export default function Segmentation() {
@@ -34,11 +35,7 @@ export default function Segmentation() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoading message="Loading segments..." />;
   }
 
   if (error) {

@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { Users, UserCheck, UserPlus, TrendingDown, Moon, Loader2 } from "lucide-react";
+import { Users, UserCheck, UserPlus, TrendingDown, Moon } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
 import { CampaignPerformance } from "@/components/dashboard/CampaignPerformance";
 import { ChurnRiskWidget } from "@/components/dashboard/ChurnRiskWidget";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { PageLoading } from "@/components/ui/page-loading";
 import { useDashboardSummary } from "@/hooks/useDashboard";
 import type { Period } from "@/services/dashboardApi";
 
@@ -68,11 +69,7 @@ export default function Dashboard() {
   }, [metrics]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoading message="Loading dashboard..." />;
   }
 
   if (error) {
